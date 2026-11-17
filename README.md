@@ -6,6 +6,9 @@ persetujuan pengeluaran, audit log, laporan PDF/Excel otomatis, serta prediksi k
 
 ![Beranda publik](docs/screenshots/home.png)
 
+[![CI](https://github.com/iqbaal24/sidama/actions/workflows/ci.yml/badge.svg)](https://github.com/iqbaal24/sidama/actions/workflows/ci.yml)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/iqbaal24/sidama)
+
 > **Demo:** jalankan lokal dengan `seed_demo` — tersedia 12 bulan data transaksi realistis,
 > 3 program donasi, data zakat, kurban, aset, dan laporan yang sudah terbit.
 
@@ -270,6 +273,55 @@ python manage.py test tests -v 2
 - RBAC setiap peran, rate limiting login,
 - pembuatan/penyajian laporan PDF & Excel,
 - endpoint API dan validasi.
+
+## Deploy ke hosting (Render / Railway / Fly.io)
+
+Repo ini sudah siap dideploy tanpa konfigurasi tambahan. Tiga jalur, pilih satu:
+
+### A. Render (gratis, paling cepat — tombol satu klik)
+
+1. Buka <https://render.com/deploy?repo=https://github.com/iqbaal24/sidama>
+   (atau login Render dengan GitHub, lalu **New → Blueprint** dan pilih repo `sidama`).
+2. Render membaca [`render.yaml`](render.yaml): membuat web service + PostgreSQL,
+   menjalankan `build.sh` (migrate → collectstatic → seed data demo), lalu
+   `gunicorn config.wsgi`.
+3. Setelah selesai, aplikasi hidup di `https://sidama-xxxx.onrender.com`.
+
+Catatan tier gratis Render: instance tidur setelah ~15 menit tanpa trafik
+(permintaan pertama setelah tidur butuh ±30–50 detik), dan database gratis punya masa aktif.
+
+### B. Railway
+
+1. **New Project → Deploy from GitHub repo** → pilih `sidama`.
+2. Tambahkan plugin **PostgreSQL** (Railway mengisi `DATABASE_URL` otomatis).
+3. [`railway.json`](railway.json) sudah mengatur build & start command.
+
+### C. Fly.io (butuh kartu terdaftar)
+
+```bash
+fly launch --copy-config --no-deploy   # memakai fly.toml
+fly volumes create sidama_data --size 1
+fly secrets set DJANGO_SECRET_KEY="$(openssl rand -base64 48)"
+fly deploy
+```
+
+### Variabel lingkungan yang dipakai
+
+| Variabel | Wajib | Keterangan |
+|---|---|---|
+| `DJANGO_SECRET_KEY` | produksi | Kunci acak panjang; `generateValue` di Render |
+| `DJANGO_DEBUG` | – | `0` untuk produksi |
+| `DJANGO_ALLOWED_HOSTS` | – | Host tambahan, dipisah koma; host platform terdeteksi otomatis |
+| `DATABASE_URL` | – | Diisi otomatis oleh Render/Railway/Heroku |
+| `CELERY_BROKER_URL` | – | Isi `disabled` bila tanpa Redis → tugas jalan inline |
+| `DJANGO_SECURE_SSL_REDIRECT` | – | `1` di produksi (default) |
+
+Verifikasi lokal dengan mode produksi (tanpa Redis, DEBUG=0):
+
+```bash
+DJANGO_DEBUG=0 DJANGO_SECRET_KEY=x .venv/bin/python manage.py collectstatic --noinput
+DJANGO_DEBUG=0 DJANGO_SECRET_KEY=x gunicorn config.wsgi:application --bind 127.0.0.1:8020
+```
 
 ## Menjalankan dengan Docker
 
