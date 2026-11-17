@@ -262,6 +262,9 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = int(os.getenv("DJANGO_HSTS_SECONDS", str(60 * 60 * 24 * 30)))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+    # Platform health checks call /healthz/ over plain HTTP from inside the
+    # network; a 301 there makes the platform mark the deploy as failed.
+    SECURE_REDIRECT_EXEMPT = [r"^healthz/?$"]
 
 # ---------------------------------------------------------------------------
 # Cache & email
