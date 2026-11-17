@@ -1,0 +1,135 @@
+{
+  "info": {
+    "name": "SIDAMA API",
+    "description": "Koleksi dasar API Sistem Informasi Dana Masjid. Jalankan request login terlebih dahulu; token disimpan otomatis ke variabel koleksi.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"bendahara\",\n  \"password\": \"sidama123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login/", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login", ""] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.token) { pm.collectionVariables.set('token', data.token); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Token {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/me/", "host": ["{{baseUrl}}"], "path": ["api", "auth", "me", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Finance",
+      "item": [
+        {
+          "name": "List transactions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Token {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/transactions/", "host": ["{{baseUrl}}"], "path": ["api", "transactions", ""] }
+          }
+        },
+        {
+          "name": "Fund balances",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Token {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/funds/balance/", "host": ["{{baseUrl}}"], "path": ["api", "funds", "balance", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Programs",
+      "item": [
+        {
+          "name": "Public programs",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/programs/", "host": ["{{baseUrl}}"], "path": ["api", "programs", ""] }
+          }
+        },
+        {
+          "name": "Donate",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"donor_name\": \"Hamba Allah\",\n  \"amount\": 100000,\n  \"method\": \"qris\",\n  \"message\": \"Semoga berkah\",\n  \"is_anonymous\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/programs/beasiswa-santri-tahfidz/donate/", "host": ["{{baseUrl}}"], "path": ["api", "programs", "beasiswa-santri-tahfidz", "donate", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Zakat",
+      "item": [
+        {
+          "name": "Calculate (public)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/zakat/calculate/?type=mal&assets=100000000&debts=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "zakat", "calculate", ""],
+              "query": [
+                { "key": "type", "value": "mal" },
+                { "key": "assets", "value": "100000000" },
+                { "key": "debts", "value": "0" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Public",
+      "item": [
+        {
+          "name": "Transparency summary",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/public/summary/", "host": ["{{baseUrl}}"], "path": ["api", "public", "summary", ""] }
+          }
+        },
+        {
+          "name": "Cash-flow forecast",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Token {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/forecast/cashflow/", "host": ["{{baseUrl}}"], "path": ["api", "forecast", "cashflow", ""] }
+          }
+        }
+      ]
+    }
+  ]
+}
