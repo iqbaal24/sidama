@@ -327,6 +327,25 @@ tidak ada database di `render.yaml`, lalu deploy ulang sebagai satu web service 
 (**New → Web Service**, bukan Blueprint) dengan Build Command `./build.sh` dan Start
 Command `./start.sh`.
 
+### Deploy tanpa env var tetap benar
+
+Tidak perlu mengisi satu variabel pun. Saat berjalan di platform (Render/Railway/Fly/
+Heroku/Spaces terdeteksi dari environment), aplikasi otomatis:
+
+- `DEBUG=False` — halaman error teknis Django tidak pernah tayang
+- `SIDAMA_PUBLIC_ONLY=1` — hanya situs jamaah yang dimount
+- menambahkan hostname platform ke `ALLOWED_HOSTS` + `CSRF_TRUSTED_ORIGINS`
+- memakai secret key acak per boot bila `DJANGO_SECRET_KEY` kosong (sesi reset saat
+  restart; set variabel ini untuk sesi stabil)
+- mengecualikan `/healthz/` dari redirect https agar health check platform tidak gagal
+
+Lokal (`runserver`) tetap `DEBUG=True` dengan dashboard penuh. Perilaku ini dikunci oleh
+`tests/test_deploy_settings.py`.
+
+Kalau dulu sempat muncul **`DisallowedHost`** di `https://<app>.onrender.com`, itu karena
+versi lama hanya menambahkan hostname platform ketika `DJANGO_DEBUG=0` sudah diset manual.
+Sekarang tidak lagi — cukup redeploy commit terbaru.
+
 ### B. Railway
 
 1. **New Project → Deploy from GitHub repo** → pilih `sidama`.
