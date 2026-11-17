@@ -282,6 +282,29 @@ python manage.py test tests -v 2
 
 Repo ini sudah siap dideploy tanpa konfigurasi tambahan. Tiga jalur, pilih satu:
 
+### A2. Hugging Face Spaces (gratis, tanpa kartu sama sekali)
+
+Kalau Render tetap menolak workspace tanpa kartu, jalur ini pasti jalan — Spaces
+mendukung Docker dan tidak meminta kartu.
+
+1. Buat akun gratis di <https://huggingface.co/join> (cukup email).
+2. Buat token **write** di <https://huggingface.co/settings/tokens>.
+3. Buat Space kosong di <https://huggingface.co/new-space>:
+   **SDK: Docker**, template **Blank**, visibility **Public**.
+4. Jalankan:
+
+   ```bash
+   HF_TOKEN=hf_xxxxxxxx ./deploy/hf.sh <username-hf> sidama
+   ```
+
+Branch `hf` sudah berisi `Dockerfile` (port 8000) + `README.md` dengan front matter
+Space, dan env bawaan `SIDAMA_PUBLIC_ONLY=1` sehingga yang tayang hanya situs jamaah.
+Setelah build ±3–5 menit, aplikasi hidup di
+`https://<username-hf>-sidama.hf.space`.
+
+Catatan: filesystem Space bersifat sementara — data demo dibuat ulang setiap container
+hidup (memakai `start.sh` yang sama).
+
 ### A. Render (gratis, tanpa kartu — tombol satu klik)
 
 1. Buka <https://render.com/deploy?repo=https://github.com/iqbaal24/sidama>
