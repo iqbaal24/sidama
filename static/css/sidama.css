@@ -384,7 +384,7 @@ ul, ol {
   color: var(--ink-soft);
 }
 
-.site-nav a:hover { background: var(--green-50); color: var(--green-900); }
+.site-nav a:not(.btn):hover { background: var(--green-50); color: var(--green-900); }
 
 .site-nav a.is-active {
   color: var(--green-900);
@@ -392,8 +392,17 @@ ul, ol {
   background: var(--green-50);
 }
 
-.site-nav a.btn { color: #fff; }
-.site-nav a.btn:hover { color: #fff; }
+/* The header CTA is a .btn: keep its own colours so the nav link rule
+   cannot paint white text onto a pale background on hover. */
+.site-nav a.btn,
+.site-nav a.btn:hover {
+  color: #fff;
+  background: var(--green-800);
+}
+
+.site-nav a.btn:hover {
+  background: var(--green-700);
+}
 
 .site-header .btn { margin-left: 6px; }
 
