@@ -1,9 +1,12 @@
 # SIDAMA — production image
+# Works for Docker Compose, Render, Railway, Fly.io and Hugging Face Spaces:
+# start.sh runs migrate → seed demo (only when the database is empty) → gunicorn.
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    PORT=8000
 
 WORKDIR /app
 
@@ -19,12 +22,10 @@ COPY . .
 RUN useradd --create-home --shell /bin/bash sidama \
     && mkdir -p /app/media /app/staticfiles \
     && chown -R sidama:sidama /app \
-    && chmod +x /app/docker/entrypoint.sh
+    && chmod +x /app/start.sh /app/build.sh /app/docker/entrypoint.sh
 
 USER sidama
 
 EXPOSE 8000
 
-ENTRYPOINT ["/app/docker/entrypoint.sh"]
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", \
-     "--workers", "3", "--timeout", "120", "--access-logfile", "-"]
+CMD ["/app/start.sh"]
