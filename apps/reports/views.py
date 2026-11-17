@@ -226,6 +226,10 @@ def _serve(report: Report, fmt: str):
     if fmt not in {"pdf", "xlsx"}:
         raise Http404("Format tidak dikenal.")
     field = report.pdf_file if fmt == "pdf" else report.xlsx_file
+    # Managed platforms use ephemeral disks: rebuild the file if it disappeared.
+    if not field or not field.storage.exists(field.name):
+        report = generate_report(report)
+        field = report.pdf_file if fmt == "pdf" else report.xlsx_file
     if not field:
         raise Http404("Berkas laporan belum dibuat.")
     content_type = ("application/pdf" if fmt == "pdf"

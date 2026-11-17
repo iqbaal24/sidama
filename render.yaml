@@ -1,0 +1,40 @@
+# SIDAMA — Render blueprint
+# Deploy: New > Blueprint, pilih repo ini. Render membuat web service + Postgres
+# dan menjalankan build.sh (migrate, collectstatic, seed demo) otomatis.
+services:
+  - type: web
+    name: sidama
+    runtime: python
+    plan: free
+    region: singapore
+    branch: main
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --access-logfile -"
+    healthCheckPath: /healthz/
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.6"
+      - key: DJANGO_DEBUG
+        value: "0"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_ALLOWED_HOSTS
+        value: "localhost,127.0.0.1"
+      - key: DJANGO_SECURE_SSL_REDIRECT
+        value: "1"
+      - key: CELERY_BROKER_URL
+        value: "disabled"
+      - key: CELERY_TASK_ALWAYS_EAGER
+        value: "1"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sidama-db
+          property: connectionString
+
+databases:
+  - name: sidama-db
+    plan: free
+    region: singapore
+    databaseName: sidama
+    user: sidama

@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
@@ -30,7 +31,25 @@ if not SECRET_KEY:
         raise ImproperlyConfigured("DJANGO_SECRET_KEY wajib diisi saat DEBUG=False.")
 
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver")
+if not DEBUG:
+    # Managed platforms inject their own public hostname.
+    for candidate in ("RENDER_EXTERNAL_HOSTNAME", "RAILWAY_PUBLIC_DOMAIN",
+                      "FLY_APP_NAME", "HEROKU_APP_DOMAIN"):
+        value = os.getenv(candidate)
+        if not value:
+            continue
+        if candidate == "FLY_APP_NAME":
+            value = f"{value}.fly.dev"
+        if value not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(value)
+
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+for host in list(ALLOWED_HOSTS):
+    if host in {"localhost", "127.0.0.1", "testserver"} or "*" in host:
+        continue
+    origin = f"https://{host}"
+    if origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(origin)
 
 # ---------------------------------------------------------------------------
 # Applications
@@ -102,7 +121,16 @@ ASGI_APPLICATION = "config.asgi.application"
 # ---------------------------------------------------------------------------
 # Database
 # ---------------------------------------------------------------------------
-if os.getenv("DB_ENGINE", "sqlite").lower() == "postgres":
+if os.getenv("DATABASE_URL"):
+    # PaaS platforms (Render, Railway, Heroku…) inject a single connection URL.
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=os.environ["DATABASE_URL"],
+            conn_max_age=600,
+            ssl_require=env_bool("DB_SSL_REQUIRE", False),
+        )
+    }
+elif os.getenv("DB_ENGINE", "sqlite").lower() == "postgres":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -180,15 +208,15 @@ SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = False  # needed by fetch() in the internal app
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 if not DEBUG:
     SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", True)
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30
+    SESSION_COOKIE_SECURE = env_bool("DJANGO_SECURE_COOKIES", True)
+    CSRF_COOKIE_SECURE = env_bool("DJANGO_SECURE_COOKIES", True)
+    SECURE_HSTS_SECONDS = int(os.getenv("DJANGO_HSTS_SECONDS", str(60 * 60 * 24 * 30)))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # ---------------------------------------------------------------------------
 # Cache & email
@@ -258,6 +286,9 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 60 * 10
+# Without a broker (free PaaS tier) run tasks inline so reports still generate.
+if os.getenv("CELERY_BROKER_URL", "").strip() in {"", "none", "disabled"}:
+    CELERY_TASK_ALWAYS_EAGER = True
 
 # ---------------------------------------------------------------------------
 # SIDAMA defaults (can be overridden from the Settings page)
