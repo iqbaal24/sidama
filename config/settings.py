@@ -82,10 +82,10 @@ ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver
 # Always trust the platform's own hostname, whatever DEBUG is set to.
 if PLATFORM_HOST and PLATFORM_HOST not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(PLATFORM_HOST)
-if ON_PLATFORM and "*" not in ALLOWED_HOSTS:
-    # Render/Railway also serve the service from an internal hostname and the
-    # health check hits it directly; accepting any Host is safe here because the
-    # app is public read-only content and CSRF still uses trusted origins.
+if ON_PLATFORM and PUBLIC_ONLY and "*" not in ALLOWED_HOSTS:
+    # The public site is read-only and has no auth, so accepting any Host is safe
+    # and keeps internal health checks working. The full app (login, password
+    # reset) keeps strict host validation and relies on PLATFORM_HOST.
     ALLOWED_HOSTS.append("*")
 
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
