@@ -56,6 +56,10 @@ siapa mengubah data apa. SIDAMA menjawab masalah tersebut dengan:
 |---|---|
 | ![Program](docs/screenshots/program-detail.png) | ![Zakat](docs/screenshots/zakat.png) |
 
+> Tangkapan layar dashboard & transaksi di atas adalah tampilan internal untuk pengurus.
+> Pada deploy demo, aplikasi berjalan dalam mode publik saja (`SIDAMA_PUBLIC_ONLY=1`)
+> sehingga hanya halaman jamaah yang dapat diakses.
+
 ## Fitur
 
 ### Keuangan
