@@ -282,24 +282,34 @@ python manage.py test tests -v 2
 
 Repo ini sudah siap dideploy tanpa konfigurasi tambahan. Tiga jalur, pilih satu:
 
-### A. Render (gratis, paling cepat — tombol satu klik)
+### A. Render (gratis, tanpa kartu — tombol satu klik)
 
 1. Buka <https://render.com/deploy?repo=https://github.com/iqbaal24/sidama>
    (atau login Render dengan GitHub, lalu **New → Blueprint** dan pilih repo `sidama`).
-2. Render membaca [`render.yaml`](render.yaml): membuat web service + PostgreSQL,
-   menjalankan `build.sh` (migrate → collectstatic → seed data demo), lalu
-   `gunicorn config.wsgi`. Blueprint sudah menyetel `SIDAMA_PUBLIC_ONLY=1`,
-   jadi yang tayang hanya situs transparansi jamaah.
-3. Setelah selesai, aplikasi hidup di `https://sidama-xxxx.onrender.com`.
+2. Render membaca [`render.yaml`](render.yaml): **satu** web service free, memakai SQLite
+   (tidak ada database terkelola, jadi Render tidak meminta kartu).
+   `build.sh` menjalankan collectstatic; `start.sh` menjalankan migrate → seed data demo →
+   gunicorn setiap kali instance hidup.
+3. Blueprint sudah menyetel `SIDAMA_PUBLIC_ONLY=1`, jadi yang tayang hanya situs jamaah.
+4. Setelah selesai, aplikasi hidup di `https://sidama-xxxx.onrender.com`.
 
-Catatan tier gratis Render: instance tidur setelah ~15 menit tanpa trafik
-(permintaan pertama setelah tidur butuh ±30–50 detik), dan database gratis punya masa aktif.
+Catatan tier gratis Render: instance tidur setelah ~15 menit tanpa trafik (permintaan
+pertama setelah tidur butuh ±30–50 detik). Karena SQLite berada di disk sementara, data
+demo dibuat ulang otomatis saat boot; kalau ingin data awet melewati redeploy, set
+`DATABASE_URL` dari [Neon](https://neon.tech) (gratis, tanpa kartu) di dashboard Render.
+
+**Kalau Render tetap meminta kartu:** itu bukan tagihan, hanya verifikasi $1 yang
+dikembalikan. Penyebab umumnya blueprint yang membuat lebih dari satu resource — pastikan
+tidak ada database di `render.yaml`, lalu deploy ulang sebagai satu web service biasa
+(**New → Web Service**, bukan Blueprint) dengan Build Command `./build.sh` dan Start
+Command `./start.sh`.
 
 ### B. Railway
 
 1. **New Project → Deploy from GitHub repo** → pilih `sidama`.
-2. Tambahkan plugin **PostgreSQL** (Railway mengisi `DATABASE_URL` otomatis).
-3. [`railway.json`](railway.json) sudah mengatur build & start command.
+2. Railway mengisi `PORT` otomatis; `start.sh` memakai SQLite bila `DATABASE_URL` kosong.
+3. Tambahkan plugin **PostgreSQL** bila ingin data persisten.
+4. [`railway.json`](railway.json) sudah mengatur build & start command.
 
 ### C. Fly.io (butuh kartu terdaftar)
 

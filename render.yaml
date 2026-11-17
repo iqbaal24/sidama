@@ -1,6 +1,9 @@
-# SIDAMA — Render blueprint
-# Deploy: New > Blueprint, pilih repo ini. Render membuat web service + Postgres
-# dan menjalankan build.sh (migrate, collectstatic, seed demo) otomatis.
+# SIDAMA — Render blueprint (SATU web service, tanpa database, tanpa kartu)
+#
+# Deploy: New > Blueprint, pilih repo ini. Blueprint ini hanya membuat satu web
+# service free dan memakai SQLite, sehingga Render tidak meminta kartu.
+# Ingin data tetap awet setelah redeploy? Set DATABASE_URL dari Neon
+# (gratis, tanpa kartu) di dashboard Render.
 services:
   - type: web
     name: sidama
@@ -9,7 +12,7 @@ services:
     region: singapore
     branch: main
     buildCommand: "./build.sh"
-    startCommand: "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --access-logfile -"
+    startCommand: "./start.sh"
     healthCheckPath: /healthz/
     autoDeploy: true
     envVars:
@@ -31,14 +34,5 @@ services:
         value: "disabled"
       - key: CELERY_TASK_ALWAYS_EAGER
         value: "1"
-      - key: DATABASE_URL
-        fromDatabase:
-          name: sidama-db
-          property: connectionString
-
-databases:
-  - name: sidama-db
-    plan: free
-    region: singapore
-    databaseName: sidama
-    user: sidama
+      - key: DB_ENGINE
+        value: "sqlite"
