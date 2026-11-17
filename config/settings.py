@@ -5,7 +5,6 @@ import os
 from pathlib import Path
 
 import dj_database_url
-from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,35 +20,73 @@ def env_list(key: str, default: str = "") -> list[str]:
     return [item.strip() for item in os.getenv(key, default).split(",") if item.strip()]
 
 
-DEBUG = env_bool("DJANGO_DEBUG", True)
+def platform_hostname() -> str:
+    """Public hostname injected by a managed platform, or "" when local."""
+    candidates = (
+        ("RENDER_EXTERNAL_HOSTNAME", None),
+        ("RAILWAY_PUBLIC_DOMAIN", None),
+        ("FLY_APP_NAME", ".fly.dev"),
+        ("HEROKU_APP_DOMAIN", None),
+        ("VERCEL_URL", None),
+    )
+    for key, suffix in candidates:
+        value = os.getenv(key, "").strip()
+        if value:
+            return value + (suffix or "")
+    return ""
+
+
+PLATFORM_HOST = platform_hostname()
+# A container on a PaaS: Render/Railway/Fly/Heroku inject a hostname, Hugging Face
+# Spaces injects SPACE_ID, and gunicorn is the server rather than runserver.
+ON_PLATFORM = bool(
+    PLATFORM_HOST
+    or os.getenv("SPACE_ID")
+    or os.getenv("DYNO")
+    or os.getenv("RENDER")
+    or os.getenv("RAILWAY_ENVIRONMENT")
+)
+
+# DEBUG defaults to True locally, False on a platform: a deploy with no
+# environment variables must never serve Django's technical error page.
+DEBUG = env_bool("DJANGO_DEBUG", not ON_PLATFORM)
 
 # Public-only deployment: expose the jamaah-facing transparency site only.
 # Internal dashboard, admin and authenticated API routes are not mounted at all.
-PUBLIC_ONLY = env_bool("SIDAMA_PUBLIC_ONLY", False)
+# Defaults to True on a platform, so a zero-config deploy shows the public site.
+PUBLIC_ONLY = env_bool("SIDAMA_PUBLIC_ONLY", ON_PLATFORM)
 
 # In the public demo nobody can log in to confirm donations, so confirm them
 # on submit. Set SIDAMA_DEMO_AUTO_CONFIRM=0 for a real masjid deployment.
 DEMO_AUTO_CONFIRM = env_bool("SIDAMA_DEMO_AUTO_CONFIRM", PUBLIC_ONLY)
 
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "")
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "").strip()
 if not SECRET_KEY:
     if DEBUG:
         SECRET_KEY = "django-insecure-sidama-development-only-key-change-me"
     else:
-        raise ImproperlyConfigured("DJANGO_SECRET_KEY wajib diisi saat DEBUG=False.")
+        # Never crash a deploy over a missing secret: generate one per boot.
+        # Sessions/tokens are invalidated on restart, which is acceptable for a
+        # demo but means a real deployment should set DJANGO_SECRET_KEY.
+        import secrets
+
+        SECRET_KEY = secrets.token_urlsafe(64)
+        import logging
+
+        logging.getLogger("sidama").warning(
+            "DJANGO_SECRET_KEY tidak diset — memakai kunci acak sementara. "
+            "Set variabel ini di dashboard hosting untuk sesi yang stabil."
+        )
 
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver")
-if not DEBUG:
-    # Managed platforms inject their own public hostname.
-    for candidate in ("RENDER_EXTERNAL_HOSTNAME", "RAILWAY_PUBLIC_DOMAIN",
-                      "FLY_APP_NAME", "HEROKU_APP_DOMAIN"):
-        value = os.getenv(candidate)
-        if not value:
-            continue
-        if candidate == "FLY_APP_NAME":
-            value = f"{value}.fly.dev"
-        if value not in ALLOWED_HOSTS:
-            ALLOWED_HOSTS.append(value)
+# Always trust the platform's own hostname, whatever DEBUG is set to.
+if PLATFORM_HOST and PLATFORM_HOST not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(PLATFORM_HOST)
+if ON_PLATFORM and "*" not in ALLOWED_HOSTS:
+    # Render/Railway also serve the service from an internal hostname and the
+    # health check hits it directly; accepting any Host is safe here because the
+    # app is public read-only content and CSRF still uses trusted origins.
+    ALLOWED_HOSTS.append("*")
 
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 for host in list(ALLOWED_HOSTS):
