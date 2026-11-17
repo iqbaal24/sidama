@@ -142,7 +142,11 @@
             </label>
             <button class="btn btn-block" type="submit">Lanjutkan donasi</button>
             <p class="tiny muted text-center" style="margin:10px 0 0;">
-              Konfirmasi pembayaran dilakukan bendahara setelah dana masuk.
+              {% if public_only %}
+                Mode demo: donasi langsung tercatat agar progres program dapat dilihat.
+              {% else %}
+                Konfirmasi pembayaran dilakukan bendahara setelah dana masuk.
+              {% endif %}
             </p>
           </form>
         {% else %}

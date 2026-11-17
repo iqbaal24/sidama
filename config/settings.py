@@ -23,6 +23,14 @@ def env_list(key: str, default: str = "") -> list[str]:
 
 DEBUG = env_bool("DJANGO_DEBUG", True)
 
+# Public-only deployment: expose the jamaah-facing transparency site only.
+# Internal dashboard, admin and authenticated API routes are not mounted at all.
+PUBLIC_ONLY = env_bool("SIDAMA_PUBLIC_ONLY", False)
+
+# In the public demo nobody can log in to confirm donations, so confirm them
+# on submit. Set SIDAMA_DEMO_AUTO_CONFIRM=0 for a real masjid deployment.
+DEMO_AUTO_CONFIRM = env_bool("SIDAMA_DEMO_AUTO_CONFIRM", PUBLIC_ONLY)
+
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "")
 if not SECRET_KEY:
     if DEBUG:

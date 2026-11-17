@@ -23,6 +23,10 @@ services:
         value: "localhost,127.0.0.1"
       - key: DJANGO_SECURE_SSL_REDIRECT
         value: "1"
+      - key: SIDAMA_PUBLIC_ONLY
+        value: "1"
+      - key: SIDAMA_DEMO_AUTO_CONFIRM
+        value: "1"
       - key: CELERY_BROKER_URL
         value: "disabled"
       - key: CELERY_TASK_ALWAYS_EAGER

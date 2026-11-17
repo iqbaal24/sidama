@@ -33,7 +33,9 @@
         <a href="{% url 'public:zakat' %}" {% if request.resolver_match.url_name == 'zakat' or request.resolver_match.url_name == 'zakat_calculator' %}class="is-active"{% endif %}>Kalkulator Zakat</a>
         <a href="{% url 'public:reports' %}" {% if request.resolver_match.url_name == 'reports' %}class="is-active"{% endif %}>Laporan</a>
         <a href="{% url 'public:about' %}" {% if request.resolver_match.url_name == 'about' %}class="is-active"{% endif %}>Tentang</a>
-        {% if user.is_authenticated %}
+        {% if public_only %}
+          <a class="btn btn-sm" href="{% url 'public:zakat' %}">Hitung zakat</a>
+        {% elif user.is_authenticated %}
           <a class="btn btn-sm" href="{% url 'core:dashboard' %}">Dashboard pengurus</a>
         {% else %}
           <a class="btn btn-sm" href="{% url 'accounts:login' %}">Masuk pengurus</a>
@@ -86,7 +88,9 @@
           <ul>
             <li>{{ mosque_address|default:"Alamat masjid" }}</li>
             <li>{{ mosque_phone|default:"Nomor telepon" }}</li>
-            <li><a href="{% url 'accounts:login' %}">Masuk pengurus</a></li>
+            {% if not public_only %}
+              <li><a href="{% url 'accounts:login' %}">Masuk pengurus</a></li>
+            {% endif %}
           </ul>
         </div>
       </div>

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from django import forms
+from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
 from django.db.models import Sum
@@ -15,7 +16,7 @@ from apps.finance.models import Transaction
 from apps.finance.services import expense_by_category, fund_balances, month_totals, monthly_series
 from apps.programs.forms import PublicDonationForm
 from apps.programs.models import Donation, Program
-from apps.programs.services import create_donation
+from apps.programs.services import confirm_donation, create_donation
 from apps.reports.models import Report
 from apps.zakat.services import calculate_zakat, zakat_summary
 
@@ -155,10 +156,18 @@ def donate(request, slug):
         contact=form.cleaned_data["contact"],
         donor_user=request.user,
     )
-    messages.success(
-        request,
-        f"Donasi {donation.code} dicatat. Silakan selesaikan pembayaran sesuai instruksi.",
-    )
+    if getattr(settings, "DEMO_AUTO_CONFIRM", False):
+        confirm_donation(donation, None)
+        messages.success(
+            request,
+            f"Donasi {donation.code} diterima dan langsung tercatat pada program. "
+            "Terima kasih atas donasi Anda.",
+        )
+    else:
+        messages.success(
+            request,
+            f"Donasi {donation.code} dicatat. Silakan selesaikan pembayaran sesuai instruksi.",
+        )
     return redirect("public:donation_status", code=donation.code)
 
 

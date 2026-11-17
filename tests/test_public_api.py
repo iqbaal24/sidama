@@ -3,11 +3,12 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from apps.finance.models import Transaction
-from apps.programs.models import Program
+from apps.programs.models import Donation, Program
 from tests.base import BaseTestCase
 
 
@@ -117,3 +118,51 @@ class ApiTests(BaseTestCase):
         token = self.login_token("donatur")
         response = self.client.get("/api/transactions/", HTTP_AUTHORIZATION=f"Token {token}")
         self.assertEqual(response.status_code, 403)
+
+
+class PublicOnlyModeTests(BaseTestCase):
+    """SIDAMA_PUBLIC_ONLY hides the internal app from jamaah-facing pages."""
+
+    def setUp(self):
+        self.program = Program.objects.create(
+            title="Renovasi Serambi", description="Perluasan serambi masjid.",
+            target_amount=Decimal("10000000"), start_date=timezone.localdate(),
+            status=Program.Status.ACTIVE, is_published=True,
+        )
+
+    def test_login_link_hidden_in_public_only_mode(self):
+        with override_settings(PUBLIC_ONLY=True):
+            response = self.client.get(reverse("public:home"))
+        self.assertTrue(response.context["public_only"])
+        self.assertNotContains(response, "Masuk pengurus")
+        self.assertNotContains(response, "Dashboard pengurus")
+
+    def test_login_link_present_in_full_mode(self):
+        response = self.client.get(reverse("public:home"))
+        self.assertFalse(response.context["public_only"])
+        self.assertContains(response, "Masuk pengurus")
+
+    def test_demo_auto_confirm_records_donation_immediately(self):
+        with override_settings(DEMO_AUTO_CONFIRM=True):
+            response = self.client.post(
+                reverse("public:donate", args=[self.program.slug]),
+                {"donor_name": "Jamaah Uji", "amount": "250000",
+                 "method": Donation.Method.QRIS, "message": "Berkah"},
+            )
+        donation = Donation.objects.get(donor_name="Jamaah Uji")
+        self.assertRedirects(response, reverse("public:donation_status",
+                                               args=[donation.code]))
+        self.assertEqual(donation.status, Donation.Status.CONFIRMED)
+        self.assertIsNotNone(donation.transaction_id)
+        self.assertEqual(self.program.collected, Decimal("250000"))
+
+    def test_donation_stays_pending_without_demo_mode(self):
+        self.client.post(
+            reverse("public:donate", args=[self.program.slug]),
+            {"donor_name": "Jamaah Biasa", "amount": "150000",
+             "method": Donation.Method.TRANSFER},
+        )
+        donation = Donation.objects.get(donor_name="Jamaah Biasa")
+        self.assertEqual(donation.status, Donation.Status.PENDING)
+        self.assertIsNone(donation.transaction_id)
+

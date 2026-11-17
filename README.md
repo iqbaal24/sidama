@@ -284,7 +284,8 @@ Repo ini sudah siap dideploy tanpa konfigurasi tambahan. Tiga jalur, pilih satu:
    (atau login Render dengan GitHub, lalu **New → Blueprint** dan pilih repo `sidama`).
 2. Render membaca [`render.yaml`](render.yaml): membuat web service + PostgreSQL,
    menjalankan `build.sh` (migrate → collectstatic → seed data demo), lalu
-   `gunicorn config.wsgi`.
+   `gunicorn config.wsgi`. Blueprint sudah menyetel `SIDAMA_PUBLIC_ONLY=1`,
+   jadi yang tayang hanya situs transparansi jamaah.
 3. Setelah selesai, aplikasi hidup di `https://sidama-xxxx.onrender.com`.
 
 Catatan tier gratis Render: instance tidur setelah ~15 menit tanpa trafik
@@ -305,6 +306,35 @@ fly secrets set DJANGO_SECRET_KEY="$(openssl rand -base64 48)"
 fly deploy
 ```
 
+### Mode publik saja (tanpa dashboard internal)
+
+Untuk demo portofolio, dashboard pengurus tidak perlu ikut tayang. Set satu variabel:
+
+```
+SIDAMA_PUBLIC_ONLY=1
+```
+
+Efeknya:
+
+- Hanya halaman jamaah yang didaftarkan: beranda transparansi, daftar & detail program,
+  formulir donasi, status donasi, kalkulator zakat, arsip laporan, tentang, `/healthz/`.
+- `/login/`, `/app/...`, `/admin/`, `/profil/` dan endpoint API terautentikasi
+  **tidak dimount sama sekali** → 404, bukan halaman login.
+- Tombol “Masuk pengurus” di header dan footer otomatis hilang.
+- `SIDAMA_DEMO_AUTO_CONFIRM=1` (default mengikuti mode publik) membuat donasi langsung
+  terkonfirmasi saat dikirim, sehingga progres program dan “Donasi terbaru” bergerak —
+  tanpa perlu akun bendahara.
+
+Untuk masjid sungguhan, matikan keduanya (`SIDAMA_PUBLIC_ONLY=0`) agar dashboard dan
+alur persetujuan aktif kembali.
+
+Verifikasi lokal:
+
+```bash
+SIDAMA_PUBLIC_ONLY=1 DJANGO_DEBUG=0 DJANGO_SECRET_KEY=x \
+  .venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8021
+```
+
 ### Variabel lingkungan yang dipakai
 
 | Variabel | Wajib | Keterangan |
@@ -313,6 +343,8 @@ fly deploy
 | `DJANGO_DEBUG` | – | `0` untuk produksi |
 | `DJANGO_ALLOWED_HOSTS` | – | Host tambahan, dipisah koma; host platform terdeteksi otomatis |
 | `DATABASE_URL` | – | Diisi otomatis oleh Render/Railway/Heroku |
+| `SIDAMA_PUBLIC_ONLY` | – | `1` = hanya halaman publik, dashboard & admin tidak dimount |
+| `SIDAMA_DEMO_AUTO_CONFIRM` | – | `1` = donasi publik langsung terkonfirmasi (mode demo) |
 | `CELERY_BROKER_URL` | – | Isi `disabled` bila tanpa Redis → tugas jalan inline |
 | `DJANGO_SECURE_SSL_REDIRECT` | – | `1` di produksi (default) |
 

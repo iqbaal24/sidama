@@ -47,7 +47,7 @@ def confirm_donation(donation: Donation, user) -> Donation:
         category=category,
         amount=donation.amount,
         description=f"Donasi {donation.code} — {program.title}"[:255],
-        pic=user.get_full_name() or user.username,
+        pic=(user.get_full_name() or user.username) if user else "Sistem (konfirmasi otomatis)",
         status=Transaction.Status.APPROVED,
         program=program,
         created_by=user,
