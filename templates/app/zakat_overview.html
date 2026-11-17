@@ -1,0 +1,132 @@
+{% extends "app/base_app.html" %}
+{% load sidama %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h2>{{ title }}</h2>
+    <p>{{ subtitle }}</p>
+  </div>
+  <div class="actions">
+    <a class="btn btn-outline" href="{% url 'zakat:receipt_create' %}">Catat penerimaan</a>
+    <a class="btn" href="{% url 'zakat:distribution_create' %}">Catat penyaluran</a>
+  </div>
+</div>
+
+<div class="grid grid-4 mb-3">
+  <div class="kpi">
+    <div class="label">Penerimaan</div>
+    <div class="value">{{ summary.received|rupiah }}</div>
+    <div class="meta">{{ summary.receipt_count }} transaksi</div>
+  </div>
+  <div class="kpi">
+    <div class="label">Penyaluran</div>
+    <div class="value">{{ summary.distributed|rupiah }}</div>
+    <div class="meta">{{ summary.distribution_count }} penyaluran</div>
+  </div>
+  <div class="kpi accent">
+    <div class="label">Sisa dana zakat</div>
+    <div class="value">{{ summary.remaining|rupiah }}</div>
+    <div class="meta">{{ summary.label }}</div>
+  </div>
+  <div class="kpi">
+    <div class="label">Mustahik</div>
+    <div class="value">{{ mustahik_pending }}</div>
+    <div class="meta"><a href="{% url 'zakat:mustahik_list' %}">Belum terverifikasi →</a></div>
+  </div>
+</div>
+
+{% if mustahik_pending %}
+  <div class="alert warning mb-3">
+    <span class="alert-icon">!</span>
+    <div>
+      <strong>{{ mustahik_pending }} mustahik belum terverifikasi.</strong>
+      Verifikasi data sebelum menyalurkan zakat agar distribusi tepat sasaran.
+      <a href="{% url 'zakat:mustahik_list' %}?verified=0">Tinjau mustahik</a>
+    </div>
+  </div>
+{% endif %}
+
+<div class="grid" style="grid-template-columns:minmax(0,1.4fr) minmax(300px,0.8fr);align-items:start;">
+  <div class="table-wrap">
+    <div class="card-head" style="padding:16px 16px 0;">
+      <div>
+        <h3>Rekap bulanan {{ year }}</h3>
+        <p class="hint">Hanya bulan dengan aktivitas zakat.</p>
+      </div>
+      <form method="get">
+        <select class="filter-select" name="year" data-auto-submit aria-label="Tahun">
+          {% for y in years %}<option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+        </select>
+      </form>
+    </div>
+    <div class="table-scroll mt-2">
+      <table class="data">
+        <thead><tr><th>Bulan</th><th class="text-right">Penerimaan</th><th class="text-right">Penyaluran</th><th class="text-right">Sisa</th></tr></thead>
+        <tbody>
+          {% for row in monthly %}
+            <tr>
+              <td class="cell-strong">{{ row.label }}</td>
+              <td class="text-right"><span class="money income">{{ row.received|rupiah }}</span></td>
+              <td class="text-right"><span class="money">{{ row.distributed|rupiah }}</span></td>
+              <td class="text-right"><span class="money strong">{{ row.remaining|rupiah }}</span></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4"><div class="empty-state" style="border:0;background:transparent;">Belum ada aktivitas zakat pada {{ year }}.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-head">
+        <div><h3>Penerimaan terakhir</h3></div>
+        <a class="link-arrow" href="{% url 'zakat:receipt_list' %}">Semua</a>
+      </div>
+      <ul class="list-flat">
+        {% for receipt in recent_receipts %}
+          <li>
+            <span class="avatar">{{ receipt.payer_name|initial }}</span>
+            <div class="grow">
+              <p class="title">{{ receipt.payer_name }}</p>
+              <p class="meta">{{ receipt.get_zakat_type_display }} · {{ receipt.date|indo_date }}</p>
+            </div>
+            <span class="amount">{{ receipt.amount|short_rupiah }}</span>
+          </li>
+        {% empty %}
+          <li class="small muted">Belum ada penerimaan.</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="card mt-2">
+      <div class="card-head">
+        <div><h3>Penyaluran terakhir</h3></div>
+        <a class="link-arrow" href="{% url 'zakat:distribution_list' %}">Semua</a>
+      </div>
+      <ul class="list-flat">
+        {% for distribution in recent_distributions %}
+          <li>
+            <span class="avatar">{{ distribution.mustahik.name|initial }}</span>
+            <div class="grow">
+              <p class="title">{{ distribution.mustahik.name }}</p>
+              <p class="meta">{{ distribution.mustahik.get_asnaf_display }} · {{ distribution.date|indo_date }}</p>
+            </div>
+            <span class="amount">{{ distribution.amount|short_rupiah }}</span>
+          </li>
+        {% empty %}
+          <li class="small muted">Belum ada penyaluran.</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="card mt-2">
+      <h3 style="font-size:0.92rem;">Kalkulator zakat publik</h3>
+      <p class="small muted mb-2">Jamaah dapat menghitung zakat mal, penghasilan, dan fitrah dari halaman publik.</p>
+      <a class="btn btn-outline btn-block" href="{% url 'public:zakat' %}" target="_blank" rel="noopener">Buka kalkulator</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

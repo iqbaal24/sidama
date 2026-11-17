@@ -1,0 +1,261 @@
+{% extends "public/base_public.html" %}
+{% load sidama %}
+
+{% block title %}Transparansi Keuangan — {{ mosque_name }}{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="container hero-inner">
+    <div>
+      <span class="hero-badge"><span class="dot"></span> Laporan {{ month_label }} diperbarui</span>
+      <h1>Amanah jamaah, <em>tercatat rapi</em> dan terbuka.</h1>
+      <p class="hero-lead">
+        Setiap infak, zakat, dan donasi yang masuk ke {{ mosque_name }} kami catat,
+        buktikan, dan laporkan. Jamaah dapat melihat ke mana dana digunakan tanpa perlu login.
+      </p>
+      <div class="hero-actions">
+        <a class="btn" href="{% url 'public:program_list' %}">Lihat program donasi</a>
+        <a class="btn btn-outline" href="{% url 'public:zakat' %}">Hitung zakat</a>
+      </div>
+      <div class="hero-note">
+        <div><strong>{{ month.income|short_rupiah }}</strong>pemasukan {{ month_label }}</div>
+        <div><strong>{{ month.expense|short_rupiah }}</strong>pengeluaran {{ month_label }}</div>
+        <div><strong>{{ reports|length }} laporan</strong>terbit untuk jamaah</div>
+      </div>
+    </div>
+
+    <aside class="balance-card" aria-label="Ringkasan saldo kas">
+      <div class="label">Saldo kas masjid</div>
+      <div class="amount">{{ total_balance|rupiah }}</div>
+      <div class="caption">Per {{ today|indo_date }} · seluruh dana</div>
+      <div class="balance-split">
+        {% for row in fund_groups %}
+          <div>
+            <span>{{ row.label }}</span>
+            <span>{{ row.balance|rupiah }}</span>
+          </div>
+        {% empty %}
+          <div><span>Belum ada dana tercatat</span><span>—</span></div>
+        {% endfor %}
+      </div>
+    </aside>
+  </div>
+</section>
+
+<section class="section-tight">
+  <div class="container">
+    <div class="stat-grid">
+      <div class="stat">
+        <div class="label">Pemasukan bulan ini</div>
+        <div class="value">{{ month.income|rupiah }}</div>
+        <div class="delta {% if month.income >= previous.income %}up{% else %}down{% endif %}">
+          {% if previous.income %}vs {{ previous.income|short_rupiah }} bln lalu{% else %}bulan pertama tercatat{% endif %}
+        </div>
+      </div>
+      <div class="stat">
+        <div class="label">Pengeluaran bulan ini</div>
+        <div class="value">{{ month.expense|rupiah }}</div>
+        <div class="delta {% if month.expense <= previous.expense %}up{% else %}down{% endif %}">
+          {% if previous.expense %}vs {{ previous.expense|short_rupiah }} bln lalu{% else %}baru tercatat{% endif %}
+        </div>
+      </div>
+      <div class="stat">
+        <div class="label">Sisa dana zakat</div>
+        <div class="value">{{ zakat.remaining|rupiah }}</div>
+        <div class="delta">diterima {{ zakat.received|short_rupiah }}</div>
+      </div>
+      <div class="stat">
+        <div class="label">Program berjalan</div>
+        <div class="value">{{ active_program_count }}</div>
+        <div class="delta">donasi terverifikasi</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-tight">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">Arus kas</span>
+        <h2>Dua belas bulan terakhir</h2>
+        <p>Perbandingan pemasukan dan pengeluaran yang sudah disetujui pengurus.</p>
+      </div>
+      <div class="legend"><span>Pemasukan</span><span class="expense">Pengeluaran</span></div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Kas masuk &amp; kas keluar</h3>
+          <span class="tiny muted">Rupiah</span>
+        </div>
+        <div class="chart-box"><canvas id="cashflow-chart" aria-label="Grafik pemasukan dan pengeluaran 12 bulan" role="img"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Pengeluaran {{ month_label }}</h3>
+          <span class="tiny muted">per kategori</span>
+        </div>
+        <div class="chart-box" style="height:170px"><canvas id="expense-chart" aria-label="Pengeluaran per kategori" role="img"></canvas></div>
+        <ul class="category-list mt-2">
+          {% for row in expense_categories %}
+            <li>
+              <div class="row"><span><i class="cat-dot cat-{{ forloop.counter }}"></i>{{ row.name }}</span><span>{{ row.total|rupiah }}</span></div>
+              <div class="meter"><span style="width: {{ row.total|percent:month.expense }}%"></span></div>
+            </li>
+          {% empty %}
+            <li class="small muted">Belum ada pengeluaran bulan ini.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">Program</span>
+        <h2>Program yang sedang berjalan</h2>
+        <p>Setiap program memiliki dana terikat dan penggunaan yang dilaporkan terpisah.</p>
+      </div>
+      <a class="link-arrow" href="{% url 'public:program_list' %}">Semua program</a>
+    </div>
+
+    <div class="program-grid">
+      {% for program in programs %}
+        <article class="program-card">
+          <div class="program-media tone-{{ forloop.counter }}">
+            {% if program.image %}
+              <img src="{{ program.image.url }}" alt="{{ program.title }}">
+            {% else %}
+              <span class="placeholder">{{ program.title }}</span>
+            {% endif %}
+            <span class="badge {% if program.status == 'active' %}badge-success{% elif program.status == 'completed' %}badge-info{% else %}badge-muted{% endif %}">
+              {{ program.get_status_display }}
+            </span>
+          </div>
+          <div class="program-body">
+            <h3><a href="{{ program.get_absolute_url }}">{{ program.title }}</a></h3>
+            <p class="desc">{{ program.description }}</p>
+            <div class="progress"><span style="width: {{ program.progress }}%"></span></div>
+            <div class="progress-meta">
+              <span><strong>{{ program.collected|rupiah }}</strong> terkumpul</span>
+              <span>{{ program.progress }}%</span>
+            </div>
+            <div class="program-foot">
+              <span class="tiny muted">{{ program.donor_count }} donasi · target {{ program.target_amount|short_rupiah }}</span>
+              <a class="link-arrow" href="{{ program.get_absolute_url }}">{% if program.is_open %}Donasi{% else %}Detail{% endif %}</a>
+            </div>
+          </div>
+        </article>
+      {% empty %}
+        <div class="empty-state" style="grid-column:1/-1">Belum ada program donasi yang dipublikasikan.</div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section-tight">
+  <div class="container">
+    <div class="quote-band">
+      <div>
+        <blockquote>“Dan dirikanlah shalat, tunaikanlah zakat, dan rukuklah beserta orang&#8209;orang yang rukuk.”</blockquote>
+        <cite>QS. Al-Baqarah: 43</cite>
+      </div>
+      <a class="btn btn-light" href="{% url 'public:zakat' %}">Hitung zakat Anda</a>
+    </div>
+  </div>
+</section>
+
+<section class="section-tight">
+  <div class="container">
+    <div class="grid grid-2" style="gap:20px;align-items:start">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h3>Laporan terbit</h3>
+            <p class="tiny muted mb-0">Laporan resmi yang sudah disahkan Ketua DKM.</p>
+          </div>
+          <a class="link-arrow" href="{% url 'public:reports' %}">Arsip</a>
+        </div>
+        <div class="report-list">
+          {% for report in reports %}
+            <div class="report-row">
+              <div>
+                <p class="title">{{ report.get_report_type_display }} — {{ report.period_label }}</p>
+                <p class="meta">Terbit {{ report.published_at|indo_date }}</p>
+              </div>
+              <div class="report-actions">
+                <a class="btn btn-xs btn-outline" href="{% url 'public:report_download' report.pk 'pdf' %}">PDF</a>
+                <a class="btn btn-xs btn-outline" href="{% url 'public:report_download' report.pk 'xlsx' %}">Excel</a>
+              </div>
+            </div>
+          {% empty %}
+            <p class="small muted mb-0">Belum ada laporan yang diterbitkan.</p>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h3>Donasi terbaru</h3>
+            <p class="tiny muted mb-0">Donasi yang sudah dikonfirmasi bendahara.</p>
+          </div>
+          <a class="link-arrow" href="{% url 'public:program_list' %}">Program</a>
+        </div>
+        <ul class="list-flat">
+          {% for donation in donations %}
+            <li>
+              <span class="avatar">{{ donation.display_name|initial }}</span>
+              <div class="grow">
+                <p class="title">{{ donation.display_name }}</p>
+                <p class="meta">{{ donation.program.title }}</p>
+              </div>
+              <span class="amount">{{ donation.amount|short_rupiah }}</span>
+            </li>
+          {% empty %}
+            <li class="small muted">Belum ada donasi terkonfirmasi.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-tight">
+  <div class="container">
+    <div class="grid grid-3">
+      <div class="card">
+        <div class="badge badge-success">Bukti transaksi</div>
+        <h3 class="mt-2" style="font-size:1rem">Setiap transaksi punya nota</h3>
+        <p class="small muted mb-0">Foto nota dan bukti transfer disimpan bersama transaksinya, maksimal 5 MB per berkas.</p>
+      </div>
+      <div class="card">
+        <div class="badge badge-warning">Persetujuan</div>
+        <h3 class="mt-2" style="font-size:1rem">Pengeluaran besar dikontrol</h3>
+        <p class="small muted mb-0">Pengeluaran di atas ambang batas wajib disetujui Ketua DKM sebelum saldo berkurang.</p>
+      </div>
+      <div class="card">
+        <div class="badge badge-info">Audit</div>
+        <h3 class="mt-2" style="font-size:1rem">Jejak perubahan data</h3>
+        <p class="small muted mb-0">Siapa mengubah apa dan kapan, semuanya tercatat dan tidak bisa dihapus dari aplikasi.</p>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ series|json_script:"cashflow-data" }}
+{{ expense_categories|json_script:"expense-data" }}
+<script>
+  window.addEventListener("load", function () {
+    window.renderCashflowChart("cashflow-chart", "cashflow-data");
+    window.renderDoughnutChart("expense-chart", "expense-data");
+  });
+</script>
+{% endblock %}

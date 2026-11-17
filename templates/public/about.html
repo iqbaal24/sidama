@@ -1,0 +1,80 @@
+{% extends "public/base_public.html" %}
+{% load sidama %}
+
+{% block title %}Tentang {{ mosque_name }}{% endblock %}
+
+{% block content %}
+<section class="section-tight" style="padding-top:48px;">
+  <div class="container">
+    <div class="grid grid-2" style="gap:40px;align-items:start;">
+      <div>
+        <span class="eyebrow">Tentang</span>
+        <h1 style="font-family:var(--font-display);font-weight:400;font-size:clamp(2rem,3.4vw,2.7rem);letter-spacing:-0.03em;margin:10px 0 14px;">
+          {{ mosque_name }}
+        </h1>
+        <div class="prose">
+          <p>{{ mosque_name }} dikelola oleh Dewan Kemakmuran Masjid (DKM) yang terdiri dari
+          ketua, bendahara, sekretaris, dan petugas. Seluruh penerimaan dan pengeluaran dana
+          masjid dicatat pada SIDAMA agar dapat diaudit dan dilihat jamaah.</p>
+          <p>Kami percaya transparansi adalah bagian dari amanah. Karena itu, setiap transaksi
+          memiliki bukti, pengeluaran besar memerlukan persetujuan Ketua DKM, dan setiap
+          perubahan data tercatat pada audit log yang tidak dapat dihapus.</p>
+        </div>
+
+        <div class="grid grid-2 mt-3" style="gap:12px;">
+          <div class="card">
+            <div class="tiny muted">Alamat</div>
+            <p class="mb-0" style="font-weight:500;">{{ mosque_address|default:"—" }}</p>
+          </div>
+          <div class="card">
+            <div class="tiny muted">Telepon</div>
+            <p class="mb-0" style="font-weight:500;">{{ mosque_phone|default:"—" }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="panel">
+          <h3>Prinsip pengelolaan dana</h3>
+          <ul class="list-flat mt-2">
+            <li>
+              <span class="avatar">1</span>
+              <div class="grow">
+                <p class="title">Tercatat</p>
+                <p class="meta">Setiap rupiah masuk dan keluar memiliki kategori, bukti, dan penanggung jawab.</p>
+              </div>
+            </li>
+            <li>
+              <span class="avatar">2</span>
+              <div class="grow">
+                <p class="title">Terkontrol</p>
+                <p class="meta">Pengeluaran di atas ambang batas menunggu persetujuan Ketua DKM.</p>
+              </div>
+            </li>
+            <li>
+              <span class="avatar">3</span>
+              <div class="grow">
+                <p class="title">Terbuka</p>
+                <p class="meta">Ringkasan kas, program, dan laporan terbit dapat diakses tanpa login.</p>
+              </div>
+            </li>
+            <li>
+              <span class="avatar">4</span>
+              <div class="grow">
+                <p class="title">Terlindungi</p>
+                <p class="meta">Data mustahik dan donatur dibatasi sesuai peran; donasi dapat anonim.</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <div class="panel mt-2">
+          <h3 style="font-size:0.95rem;">Jam layanan bendahara</h3>
+          <p class="small muted mb-0">Setiap hari setelah salat Maghrib, atau menghubungi
+          nomor masjid pada jam kerja. Konfirmasi donasi biasanya dilakukan pada hari yang sama.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

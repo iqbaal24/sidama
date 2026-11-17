@@ -1,0 +1,60 @@
+{% extends "app/base_app.html" %}
+{% load sidama %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h2>{{ title }}</h2>
+    <p>{{ subtitle }}</p>
+  </div>
+  <div class="actions">
+    <span class="chip">Ambang batas {{ threshold|rupiah }}</span>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <div class="table-scroll">
+    <table class="data">
+      <thead>
+        <tr>{% for header in headers %}<th>{{ header }}</th>{% endfor %}</tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            {% for cell in row.cells %}
+              <td>
+                {% if cell.actions %}
+                  <div class="actions-cell">
+                    <form method="post" action="{% url 'finance:transaction_approve' row.obj.pk %}">
+                      {% csrf_token %}
+                      <button class="btn btn-xs" type="submit">Setujui</button>
+                    </form>
+                    <form method="post" action="{% url 'finance:transaction_reject' row.obj.pk %}" data-confirm="Tolak pengeluaran {{ row.obj.description }}?">
+                      {% csrf_token %}
+                      <button class="btn btn-xs btn-outline" type="submit">Tolak</button>
+                    </form>
+                  </div>
+                {% elif cell.badge %}
+                  <span class="badge badge-{{ cell.badge }}">{{ cell.text }}</span>
+                {% elif cell.money %}
+                  <span class="money">{{ cell.text|rupiah }}</span>
+                {% else %}
+                  <span class="{% if cell.strong %}cell-strong{% endif %}">{{ cell.text }}</span>
+                  {% if cell.sub %}<span class="cell-sub">{{ cell.sub }}</span>{% endif %}
+                {% endif %}
+              </td>
+            {% endfor %}
+          </tr>
+        {% empty %}
+          <tr><td colspan="{{ headers|length }}"><div class="empty-state" style="border:0;background:transparent;">{{ empty_text }}</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="notice mt-3">
+  Pengeluaran di atas ambang batas dicatat dengan status <strong>Menunggu Persetujuan</strong>
+  dan tidak mengurangi saldo sampai disetujui. Penolakan tetap tercatat pada audit log.
+</div>
+{% endblock %}

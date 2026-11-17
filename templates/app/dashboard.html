@@ -1,0 +1,204 @@
+{% extends "app/base_app.html" %}
+{% load sidama %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <span class="eyebrow">{{ month_label }}</span>
+    <h2>Selamat datang, {{ user.first_name|default:user.display_name }}.</h2>
+    <p>Ringkasan kas, persetujuan tertunda, dan kondisi dana masjid hari ini.</p>
+  </div>
+  <div class="actions">
+    <a class="btn btn-outline" href="{% url 'reports:generate' %}">Buat laporan</a>
+    <a class="btn" href="{% url 'finance:transaction_create' %}">Catat transaksi</a>
+  </div>
+</div>
+
+<div class="grid grid-4 mb-3">
+  <div class="kpi accent">
+    <div class="label">Saldo kas</div>
+    <div class="value">{{ total_balance|rupiah }}</div>
+    <div class="meta">Seluruh dana per {{ today|indo_date }}</div>
+  </div>
+  <div class="kpi">
+    <div class="label">Pemasukan bulan ini</div>
+    <div class="value">{{ month.income|rupiah }}</div>
+    <div class="meta">
+      {% if income_delta is not None %}
+        <span class="delta {% if income_delta < 0 %}down{% endif %}">{% if income_delta > 0 %}+{% endif %}{{ income_delta }}%</span>
+        vs bulan lalu
+      {% else %}Belum ada pembanding{% endif %}
+    </div>
+  </div>
+  <div class="kpi">
+    <div class="label">Pengeluaran bulan ini</div>
+    <div class="value">{{ month.expense|rupiah }}</div>
+    <div class="meta">
+      {% if expense_delta is not None %}
+        <span class="delta {% if expense_delta > 0 %}down{% endif %}">{% if expense_delta > 0 %}+{% endif %}{{ expense_delta }}%</span>
+        vs bulan lalu
+      {% else %}Belum ada pembanding{% endif %}
+    </div>
+  </div>
+  <div class="kpi">
+    <div class="label">Menunggu persetujuan</div>
+    <div class="value">{{ pending_total }}</div>
+    <div class="meta">
+      {% if pending_total %}<a href="{% url 'finance:approval_queue' %}">Tinjau pengeluaran →</a>{% else %}Tidak ada antrean{% endif %}
+    </div>
+  </div>
+</div>
+
+{% if forecast.tone == 'danger' or forecast.tone == 'warning' %}
+  <div class="alert {{ forecast.tone }} mb-3">
+    <span class="alert-icon">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+    </span>
+    <div>
+      <strong>Prediksi kas: {{ forecast.status }}.</strong>
+      Proyeksi saldo akhir {{ forecast.next_label }} sekitar {{ forecast.projected_balance|rupiah }}.
+      <a href="{% url 'forecasting:forecast' %}">Lihat prediksi</a>
+    </div>
+  </div>
+{% endif %}
+
+<div class="grid" style="grid-template-columns:minmax(0,1.6fr) minmax(300px,0.85fr);align-items:start;">
+  <div>
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h3>Arus kas 12 bulan</h3>
+          <p class="hint">Pemasukan dan pengeluaran yang sudah disetujui.</p>
+        </div>
+        <div class="legend"><span>Masuk</span><span class="expense">Keluar</span></div>
+      </div>
+      <div class="chart-box" style="height:260px;">
+        <canvas id="dashboard-chart" role="img" aria-label="Grafik arus kas 12 bulan"></canvas>
+      </div>
+    </div>
+
+    <div class="card mt-2">
+      <div class="card-head">
+        <div>
+          <h3>Transaksi terbaru</h3>
+          <p class="hint">8 transaksi terakhir yang disetujui.</p>
+        </div>
+        <a class="link-arrow" href="{% url 'finance:transaction_list' %}">Semua</a>
+      </div>
+      <div class="table-scroll">
+        <table class="data">
+          <thead>
+            <tr><th>Tanggal</th><th>Uraian</th><th>Kategori</th><th class="text-right">Nominal</th></tr>
+          </thead>
+          <tbody>
+            {% for tx in recent %}
+              <tr>
+                <td class="muted nowrap">{{ tx.date|indo_date }}</td>
+                <td><span class="cell-strong">{{ tx.description }}</span><span class="cell-sub">{{ tx.fund.name }}</span></td>
+                <td>{{ tx.category.name }}</td>
+                <td class="text-right">
+                  <span class="money {% if tx.is_income %}income{% endif %}">
+                    {% if tx.is_income %}+{% else %}−{% endif %}{{ tx.amount|rupiah }}
+                  </span>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="4" class="muted">Belum ada transaksi.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card mt-2">
+      <div class="card-head">
+        <div>
+          <h3>Zakat tahun ini</h3>
+          <p class="hint">Penerimaan dan penyaluran.</p>
+        </div>
+        <a class="link-arrow" href="{% url 'zakat:overview' %}">Detail</a>
+      </div>
+      <div class="grid grid-3" style="gap:12px">
+        <div class="stat-line" style="border:0;padding:0;"><span class="label">Diterima</span><span class="value">{{ zakat.received|rupiah }}</span></div>
+        <div class="stat-line" style="border:0;padding:0;"><span class="label">Disalurkan</span><span class="value">{{ zakat.distributed|rupiah }}</span></div>
+        <div class="stat-line" style="border:0;padding:0;"><span class="label">Sisa</span><span class="value">{{ zakat.remaining|rupiah }}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h3>Saldo per dana</h3>
+          <p class="hint">Dana umum, zakat, dan terikat dipisah.</p>
+        </div>
+      </div>
+      {% for row in balances %}
+        <div class="stat-line">
+          <span class="label">{{ row.fund.name }}</span>
+          <span class="value">{{ row.balance|rupiah }}</span>
+        </div>
+      {% empty %}
+        <p class="small muted">Belum ada dana.</p>
+      {% endfor %}
+      <a class="link-arrow mt-2" href="{% url 'finance:fund_list' %}" style="display:inline-flex">Kelola dana</a>
+    </div>
+
+    {% if pending_total %}
+      <div class="card mt-2">
+        <div class="card-head">
+          <div>
+            <h3>Persetujuan tertunda</h3>
+            <p class="hint">{{ pending_total }} pengeluaran menunggu.</p>
+          </div>
+        </div>
+        <ul class="list-flat">
+          {% for tx in pending %}
+            <li>
+              <span class="avatar">{{ tx.created_by.display_name|default:"?"|initial }}</span>
+              <div class="grow">
+                <p class="title">{{ tx.description }}</p>
+                <p class="meta">{{ tx.fund.name }} · {{ tx.date|indo_date }}</p>
+              </div>
+              <span class="amount">{{ tx.amount|short_rupiah }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+        <a class="link-arrow mt-2" href="{% url 'finance:approval_queue' %}" style="display:inline-flex">Tinjau semua</a>
+      </div>
+    {% endif %}
+
+    <div class="card mt-2">
+      <div class="card-head">
+        <div>
+          <h3>Program donasi</h3>
+          <p class="hint">Progres penggalangan dana.</p>
+        </div>
+        <a class="link-arrow" href="{% url 'programs:program_list' %}">Kelola</a>
+      </div>
+      {% for program in programs %}
+        <div class="mb-2">
+          <div class="row" style="display:flex;justify-content:space-between;gap:10px;font-size:0.84rem;">
+            <a href="{{ program.get_absolute_url }}">{{ program.title }}</a>
+            <span class="muted">{{ program.progress }}%</span>
+          </div>
+          <div class="progress mt-1"><span style="width: {{ program.progress }}%"></span></div>
+          <div class="tiny muted mt-1">{{ program.collected|short_rupiah }} dari {{ program.target_amount|short_rupiah }}</div>
+        </div>
+      {% empty %}
+        <p class="small muted mb-0">Belum ada program aktif.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ series|json_script:"dashboard-series" }}
+<script>
+  window.addEventListener("load", function () {
+    window.renderCashflowChart("dashboard-chart", "dashboard-series");
+  });
+</script>
+{% endblock %}

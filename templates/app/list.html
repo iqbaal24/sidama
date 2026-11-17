@@ -1,0 +1,145 @@
+{% extends "app/base_app.html" %}
+{% load sidama %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h2>{{ title }}</h2>
+    {% if subtitle %}<p>{{ subtitle }}</p>{% endif %}
+  </div>
+  <div class="actions">
+    {% if can_create and create_url %}
+      <a class="btn" href="{{ create_url }}">{{ create_label }}</a>
+    {% endif %}
+  </div>
+</div>
+
+{% block summary %}{% endblock %}
+
+{% if summary %}
+  <div class="grid grid-3 mb-3">
+    <div class="kpi">
+      <div class="label">Pemasukan {{ summary_label }}</div>
+      <div class="value">{{ summary.income|rupiah }}</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Pengeluaran {{ summary_label }}</div>
+      <div class="value">{{ summary.expense|rupiah }}</div>
+    </div>
+    <div class="kpi accent">
+      <div class="label">Selisih</div>
+      <div class="value">{{ summary.net|rupiah }}</div>
+    </div>
+  </div>
+{% endif %}
+
+{% if has_filters %}
+  <div class="table-toolbar">
+    <form method="get" role="search">
+      {% if search_fields %}
+        <label class="toolbar-search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" name="q" value="{{ query }}" placeholder="{{ search_placeholder }}" aria-label="Cari">
+        </label>
+      {% endif %}
+      {% for filter in filters %}
+        {% if filter.type == 'select' %}
+          <select class="filter-select" name="{{ filter.name }}" aria-label="{{ filter.label }}" data-auto-submit>
+            <option value="">{{ filter.label }}: semua</option>
+            {% for option in filter.options %}
+              <option value="{{ option.0 }}" {% if filter.value == option.0|stringformat:"s" %}selected{% endif %}>{{ option.1 }}</option>
+            {% endfor %}
+          </select>
+        {% elif filter.type == 'date' %}
+          <label class="filter-date">
+            <span>{{ filter.label }}</span>
+            <input type="date" name="{{ filter.name }}" value="{{ filter.value }}" aria-label="{{ filter.label }}">
+          </label>
+        {% endif %}
+      {% endfor %}
+      <button class="btn btn-sm btn-outline" type="submit">Terapkan</button>
+      {% if query or filters %}
+        <a class="btn btn-sm btn-ghost" href="{{ request.path }}">Reset</a>
+      {% endif %}
+    </form>
+    <span class="tiny muted" style="margin-left:auto;">{{ total_count }} data</span>
+  </div>
+{% endif %}
+
+<div class="table-wrap">
+  <div class="table-scroll">
+    <table class="data">
+      <thead>
+        <tr>
+          {% for header in headers %}
+            <th{% if forloop.counter0 in align_right %} class="text-right"{% endif %}>{{ header }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr {% if row.url %}class="row-link" onclick="if(!event.target.closest('a,button,form')) window.location='{{ row.url }}'"{% endif %}>
+            {% for cell in row.cells %}
+              <td{% if cell.money %} class="text-right"{% endif %}>
+                {% if cell.actions %}
+                  <div class="actions-cell">
+                    {% if row.url %}<a class="btn btn-xs btn-outline" href="{{ row.url }}">Detail</a>{% endif %}
+                    {% for action in row.extra_actions %}
+                      {% if action.method == 'post' %}
+                        <form method="post" action="{{ action.url }}" {% if action.confirm %}data-confirm="{{ action.confirm }}"{% endif %}>
+                          {% csrf_token %}
+                          <button class="btn btn-xs {{ action.class|default:'btn-outline' }}" type="submit">{{ action.label }}</button>
+                        </form>
+                      {% else %}
+                        <a class="btn btn-xs {{ action.class|default:'btn-outline' }}" href="{{ action.url }}">{{ action.label }}</a>
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                {% elif cell.badge %}
+                  <span class="badge badge-{{ cell.badge }}">{{ cell.text }}</span>
+                {% elif cell.money %}
+                  <span class="money {% if cell.tone == 'success' %}income{% endif %} {% if cell.strong %}strong{% endif %}">
+                    {% if cell.sign %}{{ cell.sign }}{% endif %}{{ cell.text|rupiah }}
+                  </span>
+                {% else %}
+                  <span class="{% if cell.strong %}cell-strong{% endif %}">{{ cell.text }}</span>
+                  {% if cell.sub %}<span class="cell-sub">{{ cell.sub }}</span>{% endif %}
+                {% endif %}
+              </td>
+            {% endfor %}
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="{{ headers|length }}">
+              <div class="empty-state" style="border:0;background:transparent;">{{ empty_text }}</div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if is_paginated %}
+    <div class="pagination">
+      <span>Halaman {{ page_obj.number }} dari {{ page_obj.paginator.num_pages }}</span>
+      <div class="pages">
+        {% if page_obj.has_previous %}
+          <a class="page" href="?{% if querystring %}{{ querystring }}&{% endif %}page=1" aria-label="Halaman pertama">«</a>
+          <a class="page" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Sebelumnya">‹</a>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+          {% if num == page_obj.number %}
+            <span class="page is-active">{{ num }}</span>
+          {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+            <a class="page" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ num }}">{{ num }}</a>
+          {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+          <a class="page" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Berikutnya">›</a>
+          <a class="page" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.paginator.num_pages }}" aria-label="Halaman terakhir">»</a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

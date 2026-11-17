@@ -1,0 +1,167 @@
+{% extends "public/base_public.html" %}
+{% load sidama %}
+
+{% block title %}{{ program.title }} — {{ mosque_name }}{% endblock %}
+{% block description %}{{ program.description|truncatechars:150 }}{% endblock %}
+
+{% block content %}
+<section class="section-tight" style="padding-bottom:8px;">
+  <div class="container">
+    <p class="small muted"><a href="{% url 'public:program_list' %}">Program donasi</a> <span aria-hidden="true">/</span> {{ program.title }}</p>
+  </div>
+</section>
+
+<section class="section-tight">
+  <div class="container split-layout">
+    <div>
+      <div class="program-media" style="border-radius:var(--radius-lg);aspect-ratio:21/9;margin-bottom:24px;">
+        {% if program.image %}
+          <img src="{{ program.image.url }}" alt="{{ program.title }}">
+        {% else %}
+          <span class="placeholder">{{ program.title }}</span>
+        {% endif %}
+        <span class="badge {% if program.status == 'active' %}badge-success{% elif program.status == 'completed' %}badge-info{% else %}badge-muted{% endif %}">
+          {{ program.get_status_display }}
+        </span>
+      </div>
+
+      <span class="eyebrow">Program donasi</span>
+      <h1 style="font-family:var(--font-display);font-weight:400;font-size:clamp(1.9rem,3.4vw,2.6rem);letter-spacing:-0.03em;margin:10px 0 14px;">{{ program.title }}</h1>
+
+      <div class="panel mb-3">
+        <div class="progress-meta mb-2">
+          <span><strong>{{ program.collected|rupiah }}</strong> terkumpul dari {{ program.target_amount|rupiah }}</span>
+          <span>{{ program.progress }}%</span>
+        </div>
+        <div class="progress"><span style="width: {{ program.progress }}%"></span></div>
+        <div class="grid grid-3 mt-3" style="gap:12px">
+          <div>
+            <div class="tiny muted">Donasi terkonfirmasi</div>
+            <div class="cell-strong">{{ donation_count }} donasi</div>
+          </div>
+          <div>
+            <div class="tiny muted">Sisa kebutuhan</div>
+            <div class="cell-strong">{{ program.remaining|rupiah }}</div>
+          </div>
+          <div>
+            <div class="tiny muted">Periode</div>
+            <div class="cell-strong">
+              {{ program.start_date|indo_date }}{% if program.end_date %} – {{ program.end_date|indo_date }}{% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="prose">{{ program.description|linebreaks }}</div>
+
+      {% if expenses %}
+        <div class="panel mt-3">
+          <div class="panel-head">
+            <h3>Penggunaan dana program</h3>
+            <span class="tiny muted">Transaksi disetujui</span>
+          </div>
+          <ul class="list-flat">
+            {% for tx in expenses %}
+              <li>
+                <span class="avatar">{{ tx.category.name|initial }}</span>
+                <div class="grow">
+                  <p class="title">{{ tx.description }}</p>
+                  <p class="meta">{{ tx.date|indo_date }} · {{ tx.category.name }}</p>
+                </div>
+                <span class="amount">−{{ tx.amount|rupiah }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      {% if donations %}
+        <div class="panel mt-3">
+          <div class="panel-head">
+            <h3>Doa &amp; dukungan jamaah</h3>
+            <span class="tiny muted">{{ donation_count }} donasi</span>
+          </div>
+          <ul class="list-flat">
+            {% for donation in donations %}
+              <li>
+                <span class="avatar">{{ donation.display_name|initial }}</span>
+                <div class="grow">
+                  <p class="title">{{ donation.display_name }}</p>
+                  <p class="meta">{{ donation.message|default:"Semoga menjadi amal jariyah." }}</p>
+                </div>
+                <span class="amount">{{ donation.amount|short_rupiah }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+    </div>
+
+    <aside>
+      <div class="panel" style="position:sticky;top:88px;">
+        <h3 style="margin-bottom:4px;">Donasi sekarang</h3>
+        <p class="tiny muted mb-3">Donasi dicatat sebagai dana terikat program ini.</p>
+
+        {% if program.is_open %}
+          <form method="post" action="{% url 'public:donate' program.slug %}">
+            {% csrf_token %}
+            {% if donation_form.errors %}
+              <div class="form-errors">
+                <ul>
+                  {% for field in donation_form %}
+                    {% for error in field.errors %}<li>{{ field.label }}: {{ error }}</li>{% endfor %}
+                  {% endfor %}
+                  {% for error in donation_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+                </ul>
+              </div>
+            {% endif %}
+
+            <div class="field mb-2">
+              <label for="{{ donation_form.donor_name.id_for_label }}">Nama</label>
+              {{ donation_form.donor_name }}
+            </div>
+            <div class="field mb-2">
+              <label for="{{ donation_form.amount.id_for_label }}">Nominal (Rp)</label>
+              {{ donation_form.amount }}
+            </div>
+            <div class="field mb-2">
+              <label for="{{ donation_form.method.id_for_label }}">Metode</label>
+              {{ donation_form.method }}
+            </div>
+            <div class="field mb-2">
+              <label for="{{ donation_form.contact.id_for_label }}">WhatsApp / email <span class="muted">(opsional)</span></label>
+              {{ donation_form.contact }}
+            </div>
+            <div class="field mb-2">
+              <label for="{{ donation_form.message.id_for_label }}">Pesan / doa</label>
+              {{ donation_form.message }}
+            </div>
+            <label class="field-check mb-3">
+              {{ donation_form.is_anonymous }}
+              <span>Sembunyikan nama saya (anonim)</span>
+            </label>
+            <button class="btn btn-block" type="submit">Lanjutkan donasi</button>
+            <p class="tiny muted text-center" style="margin:10px 0 0;">
+              Konfirmasi pembayaran dilakukan bendahara setelah dana masuk.
+            </p>
+          </form>
+        {% else %}
+          <div class="notice">
+            Program ini sudah tidak menerima donasi baru.
+            {% if program.status == 'completed' %}Terima kasih atas dukungan jamaah.{% endif %}
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="panel mt-2">
+        <h3 style="font-size:0.9rem;">Transparansi</h3>
+        <p class="small muted mb-0">
+          Donasi yang terkonfirmasi otomatis menambah pemasukan dana program.
+          Laporan penggunaan dana dapat dilihat pada arsip laporan masjid.
+        </p>
+        <a class="link-arrow mt-2" href="{% url 'public:reports' %}" style="display:inline-flex">Lihat laporan</a>
+      </div>
+    </aside>
+  </div>
+</section>
+{% endblock %}

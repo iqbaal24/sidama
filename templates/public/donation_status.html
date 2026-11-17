@@ -1,0 +1,83 @@
+{% extends "public/base_public.html" %}
+{% load sidama %}
+
+{% block title %}Donasi {{ donation.code }} — {{ mosque_name }}{% endblock %}
+
+{% block content %}
+<section class="section-tight" style="padding-top:48px;">
+  <div class="container-narrow">
+    <a class="small muted" href="{{ donation.program.get_absolute_url }}">← Kembali ke {{ donation.program.title }}</a>
+
+    <div class="panel mt-3">
+      <div class="panel-head">
+        <div>
+          <span class="eyebrow">Donasi {{ donation.code }}</span>
+          <h1 style="font-family:var(--font-display);font-weight:400;font-size:2rem;letter-spacing:-0.03em;margin:8px 0 0;">
+            {% if donation.status == 'confirmed' %}Terima kasih, donasi Anda tercatat.{% elif donation.status == 'rejected' %}Donasi belum dapat kami terima.{% else %}Selesaikan pembayaran donasi.{% endif %}
+          </h1>
+        </div>
+        <span class="badge {% if donation.status == 'confirmed' %}badge-success{% elif donation.status == 'rejected' %}badge-danger{% else %}badge-warning{% endif %}">
+          {{ donation.get_status_display }}
+        </span>
+      </div>
+
+      <div class="donation-summary">
+        <div class="row"><span class="muted">Program</span><span>{{ donation.program.title }}</span></div>
+        <div class="row"><span class="muted">Donatur</span><span>{{ donation.display_name }}</span></div>
+        <div class="row"><span class="muted">Metode</span><span>{{ donation.get_method_display }}</span></div>
+        <div class="row"><span class="muted">Nominal</span><span><strong>{{ donation.amount|rupiah }}</strong></span></div>
+        <div class="row"><span class="muted">Kode donasi</span><span class="code-pill">{{ donation.code }}</span></div>
+        {% if donation.status == 'confirmed' %}
+          <div class="row"><span class="muted">Dikonfirmasi</span><span>{{ donation.confirmed_at|date:"d/m/Y H:i" }} WIB</span></div>
+        {% endif %}
+      </div>
+
+      {% if donation.status == 'pending' %}
+        <div class="notice mb-3">
+          <strong>Langkah selanjutnya:</strong> transfer sesuai nominal di atas dengan menyertakan
+          kode <strong>{{ donation.code }}</strong> pada berita transfer, lalu hubungi bendahara
+          {% if mosque_phone %}di {{ mosque_phone }}{% endif %} agar donasi dikonfirmasi.
+        </div>
+
+        <div class="grid grid-2" style="gap:14px;">
+          <div class="qris-box">
+            <div class="badge badge-gold mb-2">QRIS</div>
+            <p class="mb-0">{{ qris_note|default:"Pindai QRIS yang tersedia di masjid." }}</p>
+            <p class="tiny muted mt-2 mb-0">Cantumkan kode {{ donation.code }} pada keterangan pembayaran.</p>
+          </div>
+          <div class="qris-box">
+            <div class="badge badge-info mb-2">Transfer bank</div>
+            <p class="mb-0">{{ bank_account|default:"Rekening donasi masjid." }}</p>
+            <p class="tiny muted mt-2 mb-0">Konfirmasi manual oleh bendahara setelah dana masuk.</p>
+          </div>
+        </div>
+      {% elif donation.status == 'confirmed' %}
+        <div class="alert success">
+          <span class="alert-icon">✓</span>
+          <div>
+            <strong>Donasi sudah masuk kas program.</strong>
+            Progres program kini bertambah dan tercatat pada laporan keuangan masjid.
+          </div>
+        </div>
+        {% if donation.message %}
+          <p class="small muted mt-3 mb-0">Pesan Anda: “{{ donation.message }}”</p>
+        {% endif %}
+      {% else %}
+        <div class="alert danger">
+          <span class="alert-icon">!</span>
+          <div>
+            <strong>Donasi ditolak atau tidak ditemukan pembayarannya.</strong>
+            Silakan hubungi pengurus masjid untuk informasi lebih lanjut.
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="form-actions no-print">
+        <a class="btn" href="{{ donation.program.get_absolute_url }}">Kembali ke program</a>
+        <a class="btn btn-outline" href="{% url 'public:program_list' %}">Program lainnya</a>
+        <button class="btn btn-ghost spacer" type="button" onclick="window.print()">Cetak halaman</button>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

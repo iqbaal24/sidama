@@ -1,0 +1,40 @@
+{% extends "app/base_app.html" %}
+{% load sidama %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h2>{{ title }}</h2>
+    <p>{{ subtitle }}</p>
+  </div>
+</div>
+
+<form method="post" class="form-card" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+    <div class="form-errors"><ul>{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul></div>
+  {% endif %}
+
+  {% for group in form.groups %}
+    <div class="settings-group">
+      <h3>{{ group.label }}</h3>
+      {% if group.description %}<p class="desc">{{ group.description }}</p>{% endif %}
+      <div class="form-grid">
+        {% for spec, field in group.fields %}
+          <div class="field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
+            {% if field.errors %}<ul class="errorlist">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endfor %}
+
+  <div class="form-actions">
+    <button class="btn" type="submit">Simpan pengaturan</button>
+    <span class="tiny muted">Perubahan langsung dipakai pada halaman publik dan laporan berikutnya.</span>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,120 @@
+{% extends "app/base_app.html" %}
+{% load sidama %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h2>Prediksi Kas</h2>
+    <p>Proyeksi bulan depan memakai rata-rata pemasukan dan pengeluaran enam bulan terakhir.</p>
+  </div>
+</div>
+
+<div class="grid grid-4 mb-3">
+  <div class="kpi accent">
+    <div class="label">Saldo saat ini</div>
+    <div class="value">{{ forecast.balance|rupiah }}</div>
+    <div class="meta">Seluruh dana</div>
+  </div>
+  <div class="kpi">
+    <div class="label">Rata-rata pemasukan</div>
+    <div class="value">{{ forecast.avg_income|rupiah }}</div>
+    <div class="meta">per bulan</div>
+  </div>
+  <div class="kpi">
+    <div class="label">Rata-rata pengeluaran</div>
+    <div class="value">{{ forecast.avg_expense|rupiah }}</div>
+    <div class="meta">per bulan</div>
+  </div>
+  <div class="kpi">
+    <div class="label">Proyeksi {{ forecast.next_label }}</div>
+    <div class="value">{{ forecast.projected_balance|rupiah }}</div>
+    <div class="meta">saldo akhir bulan depan</div>
+  </div>
+</div>
+
+<div class="alert {% if forecast.tone == 'danger' %}danger{% elif forecast.tone == 'warning' %}warning{% elif forecast.tone == 'success' %}success{% endif %} mb-3">
+  <span class="alert-icon">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg>
+  </span>
+  <div>
+    <strong>{{ forecast.status }}.</strong>
+    {% if forecast.runway_months %}Kas saat ini cukup untuk sekitar {{ forecast.runway_months }} bulan operasional.{% endif %}
+    Proyeksi dihitung dari rata-rata {{ forecast.window }} bulan terakhir, bukan angka pasti.
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns:minmax(0,1.5fr) minmax(300px,0.8fr);align-items:start;">
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h3>Tren saldo &amp; proyeksi</h3>
+        <p class="hint">Saldo kumulatif dari arus kas bersih per bulan.</p>
+      </div>
+    </div>
+    <div class="chart-box" style="height:300px;">
+      <canvas id="projection-chart" role="img" aria-label="Grafik proyeksi saldo"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h3>Rata-rata pengeluaran per kategori</h3>
+        <p class="hint">Enam bulan terakhir.</p>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table class="data">
+        <thead><tr><th>Kategori</th><th class="text-right">Rata-rata / bulan</th></tr></thead>
+        <tbody>
+          {% for row in categories %}
+            <tr>
+              <td>{{ row.name }}</td>
+              <td class="text-right"><span class="money">{{ row.average|rupiah }}</span></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="2" class="muted">Belum ada data pengeluaran.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-2">
+  <div class="card-head">
+    <div>
+      <h3>Rincian bulanan</h3>
+      <p class="hint">Dasar perhitungan proyeksi.</p>
+    </div>
+  </div>
+  <div class="table-scroll">
+    <table class="data">
+      <thead>
+        <tr><th>Bulan</th><th class="text-right">Pemasukan</th><th class="text-right">Pengeluaran</th><th class="text-right">Selisih</th></tr>
+      </thead>
+      <tbody>
+        {% for row in forecast.months %}
+          <tr>
+            <td>{{ row.label }}</td>
+            <td class="text-right"><span class="money income">{{ row.income|rupiah }}</span></td>
+            <td class="text-right"><span class="money">{{ row.expense|rupiah }}</span></td>
+            <td class="text-right"><span class="money {% if row.net >= 0 %}income{% endif %}">{{ row.net|rupiah }}</span></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4" class="muted">Belum cukup data historis.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ forecast.series|json_script:"projection-series" }}
+<script>
+  window.addEventListener("load", function () {
+    window.renderProjectionChart("projection-chart", "projection-series", {{ forecast.projected_balance|floatformat:"0" }});
+  });
+</script>
+{% endblock %}

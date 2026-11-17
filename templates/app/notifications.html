@@ -1,0 +1,40 @@
+{% extends "app/base_app.html" %}
+{% load sidama %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h2>Notifikasi</h2>
+    <p>Pemberitahuan persetujuan, donasi, dan laporan.</p>
+  </div>
+  <div class="actions">
+    <form method="post" action="{% url 'notifications:read_all' %}">
+      {% csrf_token %}
+      <button class="btn btn-outline" type="submit">Tandai semua dibaca</button>
+    </form>
+  </div>
+</div>
+
+<div class="card" style="padding:0;">
+  <ul class="list-flat" style="padding:0 20px;">
+    {% for notification in notifications %}
+      <li style="{% if not notification.is_read %}background:linear-gradient(90deg, rgba(226,239,228,0.4), transparent);{% endif %}">
+        <span class="avatar">{{ notification.title|initial }}</span>
+        <div class="grow">
+          <p class="title">{{ notification.title }}</p>
+          <p class="meta">{{ notification.message }}</p>
+          <p class="tiny muted" style="margin:2px 0 0;">{{ notification.created_at|date:"d/m/Y H:i" }} WIB</p>
+        </div>
+        <form method="post" action="{% url 'notifications:read' notification.pk %}">
+          {% csrf_token %}
+          <button class="btn btn-xs {% if notification.is_read %}btn-ghost{% else %}btn-outline{% endif %}" type="submit">
+            {% if notification.is_read %}Buka{% else %}Tandai dibaca{% endif %}
+          </button>
+        </form>
+      </li>
+    {% empty %}
+      <li><div class="empty-state" style="border:0;background:transparent;width:100%;">Belum ada notifikasi.</div></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

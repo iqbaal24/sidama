@@ -1,0 +1,71 @@
+{% load static %}<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Masuk — SIDAMA {{ mosque_name }}</title>
+  <link rel="stylesheet" href="{% static 'css/sidama.css' %}">
+</head>
+<body>
+  <div class="auth-shell">
+    <aside class="auth-aside">
+      <a class="brand" href="{% url 'public:home' %}">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3c3 2.2 4.8 5 4.8 8.2V20H7.2v-8.8C7.2 8 9 5.2 12 3z"/>
+            <path d="M12 20v-4.2"/><path d="M4 20h16"/>
+          </svg>
+        </span>
+        <span class="brand-name">SIDAMA<span class="brand-sub">{{ mosque_name }}</span></span>
+      </a>
+      <blockquote>“Sesungguhnya Allah menyuruh kamu menyampaikan amanah kepada yang berhak menerimanya.”</blockquote>
+      <div class="aside-foot">
+        <p style="margin:0 0 4px;">QS. An-Nisa: 58</p>
+        <p style="margin:0;">Sistem Informasi Dana Masjid — pencatatan, transparansi, dan audit.</p>
+      </div>
+    </aside>
+
+    <main class="auth-main">
+      <div class="auth-card">
+        <span class="eyebrow">Area pengurus</span>
+        <h1>Masuk ke SIDAMA</h1>
+        <p class="lead">Gunakan email atau username yang terdaftar sebagai pengurus DKM.</p>
+
+        {% if form.non_field_errors %}
+          <div class="form-errors">
+            <ul>{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+          </div>
+        {% endif %}
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ next }}">
+          <div class="field mb-2">
+            <label for="{{ form.username.id_for_label }}">Email atau username</label>
+            {{ form.username }}
+            {% if form.username.errors %}<ul class="errorlist">{% for error in form.username.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+          <div class="field mb-3">
+            <label for="{{ form.password.id_for_label }}">Kata sandi</label>
+            {{ form.password }}
+            {% if form.password.errors %}<ul class="errorlist">{% for error in form.password.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+          <button class="btn btn-block" type="submit">Masuk</button>
+        </form>
+
+        <div class="auth-links">
+          <a href="{% url 'accounts:password_reset' %}">Lupa kata sandi?</a>
+          <a href="{% url 'public:home' %}">Kembali ke halaman publik</a>
+        </div>
+
+        <div class="demo-accounts">
+          <strong>Akun demo</strong><br>
+          Bendahara: <code>bendahara</code> / <code>sidama123</code><br>
+          Ketua DKM: <code>ketua</code> / <code>sidama123</code><br>
+          Admin: <code>admin</code> / <code>sidama123</code>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,54 @@
+{% extends "public/base_public.html" %}
+{% load sidama %}
+
+{% block title %}Arsip Laporan — {{ mosque_name }}{% endblock %}
+
+{% block content %}
+<section class="section-tight" style="padding-top:48px;padding-bottom:8px;">
+  <div class="container">
+    <span class="eyebrow">Arsip laporan</span>
+    <h1 style="font-family:var(--font-display);font-weight:400;font-size:clamp(2rem,3.4vw,2.7rem);letter-spacing:-0.03em;margin:10px 0 10px;">
+      Laporan yang dapat diunduh jamaah.
+    </h1>
+    <p class="muted" style="max-width:60ch;">
+      Laporan diterbitkan setelah ditinjau Ketua DKM. Tersedia dalam format PDF untuk dibaca
+      dan Excel untuk diolah kembali.
+    </p>
+  </div>
+</section>
+
+<section class="section-tight">
+  <div class="container">
+    <div class="panel">
+      <div class="report-list">
+        {% for report in reports %}
+          <div class="report-row">
+            <div>
+              <p class="title">{{ report.get_report_type_display }} — {{ report.period_label }}</p>
+              <p class="meta">
+                Terbit {{ report.published_at|indo_date }}
+                {% if report.published_by %}· disahkan {{ report.published_by.display_name }}{% endif %}
+              </p>
+            </div>
+            <div class="report-actions">
+              {% if report.pdf_file %}
+                <a class="btn btn-sm btn-outline" href="{% url 'public:report_download' report.pk 'pdf' %}">Unduh PDF</a>
+              {% endif %}
+              {% if report.xlsx_file %}
+                <a class="btn btn-sm btn-outline" href="{% url 'public:report_download' report.pk 'xlsx' %}">Unduh Excel</a>
+              {% endif %}
+            </div>
+          </div>
+        {% empty %}
+          <div class="empty-state">Belum ada laporan yang diterbitkan.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="notice mt-3">
+      Laporan berisi ringkasan kas, rincian per kategori, saldo per dana, dan daftar transaksi
+      yang sudah disetujui. Data pribadi mustahik dan donatur tidak ditampilkan pada halaman publik.
+    </div>
+  </div>
+</section>
+{% endblock %}

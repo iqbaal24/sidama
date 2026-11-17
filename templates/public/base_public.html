@@ -1,0 +1,104 @@
+{% load static %}<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ mosque_name }}{% endblock %}</title>
+  <meta name="description" content="{% block description %}Transparansi keuangan {{ mosque_name }}: kas masuk, kas keluar, program donasi, dan laporan yang dapat diunduh jamaah.{% endblock %}">
+  <meta name="theme-color" content="#14532d">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2314532d'/><path d='M16 6c3.5 2.4 5.5 5.6 5.5 9.2V24h-11v-8.8C10.5 11.6 12.5 8.4 16 6z' fill='%23f4ecd9'/><rect x='14.6' y='19' width='2.8' height='5' rx='1.4' fill='%2314532d'/></svg>">
+  <link rel="stylesheet" href="{% static 'css/sidama.css' %}">
+  {% block head %}{% endblock %}
+</head>
+<body class="public">
+  <a class="skip-link" href="#main">Lewati ke konten</a>
+  <header class="site-header">
+    <div class="container site-header-inner">
+      <a class="brand" href="{% url 'public:home' %}" aria-label="{{ mosque_name }} — beranda">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3c3 2.2 4.8 5 4.8 8.2V20H7.2v-8.8C7.2 8 9 5.2 12 3z"/>
+            <path d="M12 20v-4.2"/>
+            <path d="M4 20h16"/>
+          </svg>
+        </span>
+        <span class="brand-name">{{ mosque_name }}<span class="brand-sub">SIDAMA · Transparansi Dana</span></span>
+      </a>
+      <button class="nav-toggle" data-nav-toggle aria-label="Buka menu" aria-expanded="false">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <nav class="site-nav" id="site-nav" aria-label="Navigasi utama">
+        <a href="{% url 'public:home' %}" {% if request.resolver_match.url_name == 'home' %}class="is-active"{% endif %}>Transparansi</a>
+        <a href="{% url 'public:program_list' %}" {% if request.resolver_match.url_name == 'program_list' or request.resolver_match.url_name == 'program_detail' %}class="is-active"{% endif %}>Program</a>
+        <a href="{% url 'public:zakat' %}" {% if request.resolver_match.url_name == 'zakat' or request.resolver_match.url_name == 'zakat_calculator' %}class="is-active"{% endif %}>Kalkulator Zakat</a>
+        <a href="{% url 'public:reports' %}" {% if request.resolver_match.url_name == 'reports' %}class="is-active"{% endif %}>Laporan</a>
+        <a href="{% url 'public:about' %}" {% if request.resolver_match.url_name == 'about' %}class="is-active"{% endif %}>Tentang</a>
+        {% if user.is_authenticated %}
+          <a class="btn btn-sm" href="{% url 'core:dashboard' %}">Dashboard pengurus</a>
+        {% else %}
+          <a class="btn btn-sm" href="{% url 'accounts:login' %}">Masuk pengurus</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    {% if messages %}
+      <div class="container" style="padding-top:16px;">
+        <div class="messages">
+          {% for message in messages %}
+            <div class="message {{ message.tags }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <a class="brand" href="{% url 'public:home' %}">
+            <span class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3c3 2.2 4.8 5 4.8 8.2V20H7.2v-8.8C7.2 8 9 5.2 12 3z"/>
+                <path d="M12 20v-4.2"/><path d="M4 20h16"/>
+              </svg>
+            </span>
+            <span class="brand-name">{{ mosque_name }}<span class="brand-sub">SIDAMA · Sistem Informasi Dana Masjid</span></span>
+          </a>
+          <p class="small muted" style="margin-top:14px;max-width:34ch;">
+            Mencatat setiap amanah dengan rapi, membukanya untuk jamaah, dan menjaganya dengan sistem.
+          </p>
+        </div>
+        <div>
+          <h4>Transparansi</h4>
+          <ul>
+            <li><a href="{% url 'public:home' %}">Ringkasan kas</a></li>
+            <li><a href="{% url 'public:program_list' %}">Program donasi</a></li>
+            <li><a href="{% url 'public:reports' %}">Arsip laporan</a></li>
+            <li><a href="{% url 'public:zakat' %}">Kalkulator zakat</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Kontak</h4>
+          <ul>
+            <li>{{ mosque_address|default:"Alamat masjid" }}</li>
+            <li>{{ mosque_phone|default:"Nomor telepon" }}</li>
+            <li><a href="{% url 'accounts:login' %}">Masuk pengurus</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; {% now "Y" %} {{ mosque_name }}. Dikelola oleh DKM.</span>
+        <span>Dibangun dengan Django · SIDAMA v1.0</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="{% static 'vendor/chart.umd.min.js' %}" defer></script>
+  <script src="{% static 'js/sidama.js' %}" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

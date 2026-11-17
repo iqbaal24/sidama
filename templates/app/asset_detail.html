@@ -1,0 +1,77 @@
+{% extends "app/base_app.html" %}
+{% load sidama %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="small muted mb-0"><a href="{% url 'assets:asset_list' %}">Inventaris aset</a> / Detail</p>
+    <h2 class="mt-1">{{ asset.name }}</h2>
+    <p>{{ asset.category }} · {{ asset.location|default:"Lokasi belum dicatat" }}</p>
+  </div>
+  <div class="actions">
+    <a class="btn btn-outline" href="{% url 'assets:asset_update' asset.pk %}">Ubah aset</a>
+  </div>
+</div>
+
+<div class="detail-grid">
+  <div>
+    <div class="card">
+      <div class="card-head">
+        <h3>Data aset</h3>
+        <span class="badge badge-{{ asset.condition_tone }}">{{ asset.get_condition_display }}</span>
+      </div>
+      <dl class="detail-list">
+        <div><dt>Jumlah</dt><dd>{{ asset.quantity }}</dd></div>
+        <div><dt>Nilai</dt><dd>{{ asset.value|rupiah }}</dd></div>
+        <div><dt>Lokasi</dt><dd>{{ asset.location|default:"—" }}</dd></div>
+        <div><dt>Tanggal perolehan</dt><dd>{{ asset.acquired_date|indo_date }}</dd></div>
+        <div><dt>Catatan</dt><dd>{{ asset.note|default:"—" }}</dd></div>
+        <div><dt>Terakhir diperbarui</dt><dd>{{ asset.updated_at|date:"d/m/Y H:i" }}</dd></div>
+      </dl>
+    </div>
+
+    <div class="card mt-2">
+      <div class="card-head">
+        <h3>Riwayat aset</h3>
+        <span class="tiny muted">{{ logs|length }} catatan</span>
+      </div>
+      <ul class="timeline">
+        {% for log in logs %}
+          <li>
+            <div class="when">{{ log.date|indo_date }} · {{ log.created_by.display_name|default:"Sistem" }}</div>
+            <div class="what">{{ log.get_log_type_display }}</div>
+            {% if log.note %}<p class="small muted mb-0 mt-1">{{ log.note }}</p>{% endif %}
+          </li>
+        {% empty %}
+          <li><p class="small muted mb-0">Belum ada riwayat perawatan atau perubahan kondisi.</p></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h3>Catat riwayat</h3>
+        <p class="hint">Perawatan, perubahan kondisi, atau peminjaman.</p>
+      </div>
+    </div>
+    <form method="post" action="{% url 'assets:asset_log_create' asset.pk %}">
+      {% csrf_token %}
+      <div class="field mb-2">
+        <label for="{{ log_form.date.id_for_label }}">Tanggal</label>
+        {{ log_form.date }}
+      </div>
+      <div class="field mb-2">
+        <label for="{{ log_form.log_type.id_for_label }}">Jenis</label>
+        {{ log_form.log_type }}
+      </div>
+      <div class="field mb-2">
+        <label for="{{ log_form.note.id_for_label }}">Catatan</label>
+        {{ log_form.note }}
+      </div>
+      <button class="btn btn-block" type="submit">Simpan riwayat</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

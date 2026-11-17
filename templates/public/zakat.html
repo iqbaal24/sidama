@@ -1,0 +1,133 @@
+{% extends "public/base_public.html" %}
+{% load sidama %}
+
+{% block title %}Kalkulator Zakat — {{ mosque_name }}{% endblock %}
+
+{% block content %}
+<section class="section-tight" style="padding-top:48px;">
+  <div class="container split-layout">
+    <div>
+      <span class="eyebrow">Kalkulator zakat</span>
+      <h1 style="font-family:var(--font-display);font-weight:400;font-size:clamp(2rem,3.4vw,2.7rem);letter-spacing:-0.03em;margin:10px 0 12px;">
+        Hitung kewajiban zakat Anda.
+      </h1>
+      <p class="muted" style="max-width:58ch;">
+        Zakat mal, zakat penghasilan, dan zakat fitrah dihitung mengikuti nisab 85 gram emas
+        serta harga beras yang ditetapkan pengurus. Hasil bersifat estimasi.
+      </p>
+
+      <form method="post" class="panel mt-3">
+        {% csrf_token %}
+        {% if form.errors %}
+          <div class="form-errors">
+            <ul>
+              {% for field in form %}
+                {% for error in field.errors %}<li>{{ field.label }}: {{ error }}</li>{% endfor %}
+              {% endfor %}
+              {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+
+        <div class="field mb-3">
+          <span class="field-label" style="font-size:0.8rem;font-weight:600;">Jenis zakat</span>
+          <div class="radio-group mt-1">
+            {% for radio in form.zakat_type %}
+              <label class="radio-card">{{ radio.tag }} {{ radio.choice_label }}</label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="field field-full" data-zakat-group="mal">
+            <label for="{{ form.assets.id_for_label }}">{{ form.assets.label }}</label>
+            {{ form.assets }}
+            <span class="help">Tabungan, emas, saham, dan harta lain yang dimiliki setahun.</span>
+          </div>
+          <div class="field field-full" data-zakat-group="mal">
+            <label for="{{ form.debts.id_for_label }}">{{ form.debts.label }}</label>
+            {{ form.debts }}
+            <span class="help">Utang jatuh tempo dikurangkan dari total harta.</span>
+          </div>
+          <div class="field field-full" data-zakat-group="penghasilan">
+            <label for="{{ form.monthly_income.id_for_label }}">{{ form.monthly_income.label }}</label>
+            {{ form.monthly_income }}
+            <span class="help">Nisab bulanan = nisab tahunan ÷ 12.</span>
+          </div>
+          <div class="field field-full" data-zakat-group="fitrah">
+            <label for="{{ form.dependents.id_for_label }}">{{ form.dependents.label }}</label>
+            {{ form.dependents }}
+            <span class="help">Setara 2,5 kg beras per jiwa.</span>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn" type="submit">Hitung zakat</button>
+          <span class="tiny muted">Perhitungan otomatis, tanpa menyimpan data Anda.</span>
+        </div>
+      </form>
+
+      <div class="notice mt-3">
+        <strong>Catatan fikih.</strong> Nisab emas 85 gram dan kadar zakat 2,5% mengikuti
+        ketetapan BAZNAS. Untuk kondisi harta yang kompleks, konsultasikan dengan amil zakat setempat.
+      </div>
+    </div>
+
+    <aside>
+      {% if result %}
+        <div class="result-card">
+          <div class="label">Perkiraan zakat yang perlu ditunaikan</div>
+          <div class="amount">{{ result.amount|rupiah }}</div>
+          <p class="small" style="color:rgba(255,255,255,0.72);margin:0;">
+            {% if result.obligated %}Anda telah mencapai nisab.{% else %}Belum mencapai nisab tahun ini.{% endif %}
+          </p>
+          <ul>
+            <li>Dasar perhitungan: {{ result.base|rupiah }}</li>
+            {% if result.zakat_type != 'fitrah' %}
+              <li>Nisab tahunan: {{ result.nisab_annual|rupiah }}</li>
+              <li>Nisab bulanan: {{ result.nisab_monthly|rupiah }}</li>
+            {% endif %}
+            {% for note in result.notes %}<li>{{ note }}</li>{% endfor %}
+          </ul>
+        </div>
+      {% else %}
+        <div class="panel">
+          <h3 style="font-size:1rem;">Tiga jenis zakat</h3>
+          <ul class="list-flat mt-2">
+            <li>
+              <span class="avatar">M</span>
+              <div class="grow">
+                <p class="title">Zakat mal</p>
+                <p class="meta">2,5% dari harta bersih yang mencapai nisab dan tersimpan setahun.</p>
+              </div>
+            </li>
+            <li>
+              <span class="avatar">P</span>
+              <div class="grow">
+                <p class="title">Zakat penghasilan</p>
+                <p class="meta">2,5% dari penghasilan bulanan bila mencapai nisab bulanan.</p>
+              </div>
+            </li>
+            <li>
+              <span class="avatar">F</span>
+              <div class="grow">
+                <p class="title">Zakat fitrah</p>
+                <p class="meta">2,5 kg beras per jiwa, dibayarkan sebelum Idul Fitri.</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+      {% endif %}
+
+      <div class="panel mt-2">
+        <h3 style="font-size:0.95rem;">Salurkan zakat</h3>
+        <p class="small muted">
+          Zakat yang Anda titipkan dicatat pada Dana Zakat dan disalurkan kepada mustahik
+          yang sudah diverifikasi pengurus.
+        </p>
+        <a class="link-arrow" href="{% url 'public:reports' %}">Lihat laporan zakat</a>
+      </div>
+    </aside>
+  </div>
+</section>
+{% endblock %}

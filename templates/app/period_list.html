@@ -1,0 +1,83 @@
+{% extends "app/base_app.html" %}
+{% load sidama %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h2>{{ title }}</h2>
+    <p>{{ subtitle }}</p>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns:minmax(0,1.6fr) minmax(300px,0.7fr);align-items:start;">
+  <div class="table-wrap">
+    <div class="table-scroll">
+      <table class="data">
+        <thead>
+          <tr><th>Periode</th><th>Transaksi</th><th class="text-right">Pemasukan</th><th class="text-right">Pengeluaran</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              <td><span class="cell-strong">{{ row.label }}</span></td>
+              <td>{{ row.count }}</td>
+              <td class="text-right"><span class="money income">{{ row.income|rupiah }}</span></td>
+              <td class="text-right"><span class="money">{{ row.expense|rupiah }}</span></td>
+              <td>
+                {% if row.closed %}
+                  <span class="badge badge-muted">Ditutup</span>
+                  {% if row.period.closed_at %}<span class="cell-sub">{{ row.period.closed_at|date:"d/m/Y" }} · {{ row.period.closed_by.display_name|default:"—" }}</span>{% endif %}
+                  {% if user.role == 'admin' or user.is_superuser %}
+                    <form method="post" action="{% url 'finance:period_reopen' row.period.pk %}" class="mt-1" data-confirm="Buka kembali periode {{ row.label }}? Transaksi akan dapat diubah lagi.">
+                      {% csrf_token %}
+                      <button class="btn btn-xs btn-ghost" type="submit">Buka kembali</button>
+                    </form>
+                  {% endif %}
+                {% else %}
+                  <span class="badge badge-success">Terbuka</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h3>Tutup buku</h3>
+        <p class="hint">Mengunci semua transaksi pada bulan yang dipilih.</p>
+      </div>
+    </div>
+    <form method="post" action="{% url 'finance:period_close' %}" data-confirm="Tutup periode ini? Seluruh transaksi pada bulan tersebut akan terkunci.">
+      {% csrf_token %}
+      <div class="field mb-2">
+        <label for="close-month">Bulan</label>
+        <select class="select" name="month" id="close-month">
+          <option value="1">Januari</option><option value="2">Februari</option>
+          <option value="3">Maret</option><option value="4">April</option>
+          <option value="5">Mei</option><option value="6">Juni</option>
+          <option value="7">Juli</option><option value="8">Agustus</option>
+          <option value="9">September</option><option value="10">Oktober</option>
+          <option value="11">November</option><option value="12">Desember</option>
+        </select>
+      </div>
+      <div class="field mb-2">
+        <label for="close-year">Tahun</label>
+        <input class="input" type="number" name="year" id="close-year" value="{{ today.year }}" min="2020" max="2100">
+      </div>
+      <div class="field mb-2">
+        <label for="close-note">Catatan</label>
+        <input class="input" type="text" name="note" id="close-note" placeholder="Misal: tutup buku November">
+      </div>
+      <button class="btn btn-block" type="submit">Tutup periode</button>
+    </form>
+    <div class="notice mt-2">
+      Setelah ditutup, transaksi tidak dapat diubah atau dihapus. Koreksi dilakukan
+      melalui transaksi pembalik agar jejak audit tetap utuh.
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "app/base_app.html" %}
+{% load sidama %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="small muted mb-0"><a href="{% url 'audit:list' %}">Audit log</a> / Detail</p>
+    <h2 class="mt-1">{{ log.get_action_display }} · {{ log.model_name }}</h2>
+    <p>{{ log.object_repr }} · {{ log.created_at|date:"d/m/Y H:i" }} WIB</p>
+  </div>
+  <div class="actions">
+    <span class="badge badge-{{ log.action|status_tone }}">{{ log.get_action_display }}</span>
+  </div>
+</div>
+
+<div class="detail-grid">
+  <div class="card">
+    <div class="card-head"><h3>Perubahan nilai</h3></div>
+    {% if changes %}
+      <div class="table-scroll">
+        <table class="data diff-table">
+          <thead><tr><th>Field</th><th>Nilai lama</th><th>Nilai baru</th></tr></thead>
+          <tbody>
+            {% for change in changes %}
+              <tr>
+                <td>{{ change.field }}</td>
+                <td class="diff-old">{{ change.old|default:"—" }}</td>
+                <td class="diff-new">{{ change.new|default:"—" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="small muted mb-0">Tidak ada rincian perubahan pada entri ini.</p>
+    {% endif %}
+
+    {% if log.note %}
+      <div class="notice mt-3"><strong>Catatan:</strong> {{ log.note }}</div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>Metadata</h3></div>
+    <dl class="detail-list">
+      <div><dt>Waktu</dt><dd>{{ log.created_at|date:"d/m/Y H:i:s" }} WIB</dd></div>
+      <div><dt>Pengguna</dt><dd>{{ log.user.display_name|default:"Sistem" }}</dd></div>
+      <div><dt>Peran</dt><dd>{{ log.user.role_label|default:"—" }}</dd></div>
+      <div><dt>Model</dt><dd>{{ log.model_name }}</dd></div>
+      <div><dt>ID objek</dt><dd>{{ log.object_id|default:"—" }}</dd></div>
+      <div><dt>Alamat IP</dt><dd>{{ log.ip_address|default:"—" }}</dd></div>
+    </dl>
+  </div>
+</div>
+{% endblock %}

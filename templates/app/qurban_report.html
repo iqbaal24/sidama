@@ -1,0 +1,81 @@
+{% extends "app/base_app.html" %}
+{% load sidama %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h2>Laporan Kurban</h2>
+    <p>{{ subtitle }}</p>
+  </div>
+  <form method="get">
+    <select class="filter-select" name="year" data-auto-submit aria-label="Tahun">
+      {% for y in years %}<option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+    </select>
+  </form>
+</div>
+
+<div class="grid grid-4 mb-3">
+  <div class="kpi accent">
+    <div class="label">Shohibul kurban</div>
+    <div class="value">{{ registrations|length }}</div>
+    <div class="meta">{{ total_people }} jiwa</div>
+  </div>
+  <div class="kpi">
+    <div class="label">Penerimaan</div>
+    <div class="value">{{ total_amount|rupiah }}</div>
+    <div class="meta">{{ paid_count }} lunas</div>
+  </div>
+  <div class="kpi">
+    <div class="label">Penerima daging</div>
+    <div class="value">{{ distribution_count }}</div>
+    <div class="meta">{{ received_count }} sudah menerima</div>
+  </div>
+  <div class="kpi">
+    <div class="label">Total daging</div>
+    <div class="value">{{ distribution_weight }} kg</div>
+    <div class="meta">terdistribusi</div>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;">
+  <div class="card">
+    <div class="card-head"><h3>Rekap per hewan</h3></div>
+    <div class="table-scroll">
+      <table class="data">
+        <thead><tr><th>Hewan</th><th class="text-right">Jiwa</th><th class="text-right">Nominal</th></tr></thead>
+        <tbody>
+          {% for row in animal_summary %}
+            <tr>
+              <td>{{ row.animal_type|title }}</td>
+              <td class="text-right">{{ row.count }}</td>
+              <td class="text-right"><span class="money">{{ row.total|rupiah }}</span></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="3" class="muted">Belum ada pendaftaran pada {{ year }}.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>Daftar shohibul</h3></div>
+    <ul class="list-flat">
+      {% for registration in registrations %}
+        <li>
+          <span class="avatar">{{ registration.name|initial }}</span>
+          <div class="grow">
+            <p class="title">{{ registration.name }}</p>
+            <p class="meta">{{ registration.get_animal_type_display }} · {{ registration.share_count }} jiwa</p>
+          </div>
+          <span class="badge badge-{% if registration.payment_status == 'paid' %}success{% elif registration.payment_status == 'dp' %}warning{% else %}danger{% endif %}">
+            {{ registration.get_payment_status_display }}
+          </span>
+        </li>
+      {% empty %}
+        <li class="small muted">Belum ada pendaftaran.</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %}

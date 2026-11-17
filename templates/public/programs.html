@@ -1,0 +1,66 @@
+{% extends "public/base_public.html" %}
+{% load sidama %}
+
+{% block title %}Program Donasi — {{ mosque_name }}{% endblock %}
+
+{% block content %}
+<section class="section-tight" style="padding-top:44px;padding-bottom:12px;">
+  <div class="container">
+    <span class="eyebrow">Program donasi</span>
+    <h1 style="font-family:var(--font-display);font-weight:400;font-size:clamp(2rem,3.6vw,2.8rem);letter-spacing:-0.03em;margin:10px 0 10px;">
+      Salurkan kebaikan pada program yang tepat.
+    </h1>
+    <p class="muted" style="max-width:60ch;">
+      Setiap program memiliki dana terikat sendiri. Dana yang terkumpul hanya digunakan
+      untuk program tersebut dan pengeluarannya ikut tercatat pada laporan kas masjid.
+    </p>
+    <div class="table-toolbar mt-3">
+      <a class="chip {% if active_status == 'all' %}is-active{% endif %}" href="?status=all">Semua</a>
+      <a class="chip {% if active_status == 'active' %}is-active{% endif %}" href="?status=active">Berjalan</a>
+      <a class="chip {% if active_status == 'completed' %}is-active{% endif %}" href="?status=completed">Selesai</a>
+    </div>
+  </div>
+</section>
+
+<section class="section-tight">
+  <div class="container">
+    <div class="program-grid">
+      {% for program in programs %}
+        <article class="program-card">
+          <div class="program-media tone-{{ forloop.counter }}">
+            {% if program.image %}
+              <img src="{{ program.image.url }}" alt="{{ program.title }}">
+            {% else %}
+              <span class="placeholder">{{ program.title }}</span>
+            {% endif %}
+            <span class="badge {% if program.status == 'active' %}badge-success{% elif program.status == 'completed' %}badge-info{% else %}badge-muted{% endif %}">
+              {{ program.get_status_display }}
+            </span>
+          </div>
+          <div class="program-body">
+            <h3><a href="{{ program.get_absolute_url }}">{{ program.title }}</a></h3>
+            <p class="desc">{{ program.description }}</p>
+            <div class="progress"><span style="width: {{ program.progress }}%"></span></div>
+            <div class="progress-meta">
+              <span><strong>{{ program.collected|rupiah }}</strong> dari {{ program.target_amount|short_rupiah }}</span>
+              <span>{{ program.progress }}%</span>
+            </div>
+            <div class="program-foot">
+              <span class="tiny muted">
+                {% if program.end_date %}Berakhir {{ program.end_date|indo_date }}{% else %}{{ program.donor_count }} donasi{% endif %}
+              </span>
+              <a class="link-arrow" href="{{ program.get_absolute_url }}">
+                {% if program.is_open %}Donasi{% else %}Lihat detail{% endif %}
+              </a>
+            </div>
+          </div>
+        </article>
+      {% empty %}
+        <div class="empty-state" style="grid-column:1/-1">
+          Belum ada program pada kategori ini.
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

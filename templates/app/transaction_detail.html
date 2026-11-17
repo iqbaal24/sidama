@@ -1,0 +1,138 @@
+{% extends "app/base_app.html" %}
+{% load sidama %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="small muted mb-0"><a href="{% url 'finance:transaction_list' %}">Transaksi</a> / Detail</p>
+    <h2 class="mt-1">{{ tx.description }}</h2>
+    <p>{{ tx.date|indo_date }} · {{ tx.category.name }} · {{ tx.fund.name }}</p>
+  </div>
+  <div class="actions">
+    {% if can_edit %}<a class="btn btn-outline" href="{% url 'finance:transaction_update' tx.pk %}">Ubah</a>{% endif %}
+    {% if can_reverse %}
+      <form method="post" action="{% url 'finance:transaction_reverse' tx.pk %}" data-confirm="Buat transaksi pembalik untuk transaksi ini?">
+        {% csrf_token %}
+        <button class="btn btn-outline" type="submit">Buat pembalik</button>
+      </form>
+    {% endif %}
+    {% if can_delete %}
+      <form method="post" action="{% url 'finance:transaction_delete' tx.pk %}" data-confirm="Hapus transaksi ini? Tindakan ini tercatat pada audit log.">
+        {% csrf_token %}
+        <button class="btn btn-danger" type="submit">Hapus</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="detail-grid">
+  <div>
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <span class="badge {% if tx.status == 'approved' %}badge-success{% elif tx.status == 'pending' %}badge-warning{% elif tx.status == 'rejected' %}badge-danger{% else %}badge-muted{% endif %}">{{ tx.get_status_display }}</span>
+          {% if tx.locked %}<span class="badge badge-muted">Periode tertutup</span>{% endif %}
+        </div>
+        <span class="tiny muted">#{{ tx.pk }}</span>
+      </div>
+      <div class="tiny muted">Nominal</div>
+      <div class="amount-display {% if tx.is_income %}income{% endif %}">
+        {% if tx.is_income %}+{% else %}−{% endif %}{{ tx.amount|rupiah }}
+      </div>
+      <p class="small muted">{{ tx.get_transaction_type_display }} · {{ tx.fund.get_fund_type_display }}</p>
+
+      <dl class="detail-list mt-3">
+        <div><dt>Tanggal</dt><dd>{{ tx.date|indo_date }}</dd></div>
+        <div><dt>Kategori</dt><dd>{{ tx.category.name }}</dd></div>
+        <div><dt>Dana</dt><dd>{{ tx.fund.name }}</dd></div>
+        {% if tx.program %}<div><dt>Program</dt><dd><a href="{{ tx.program.get_absolute_url }}">{{ tx.program.title }}</a></dd></div>{% endif %}
+        <div><dt>Penanggung jawab</dt><dd>{{ tx.pic|default:"—" }}</dd></div>
+        <div><dt>Dicatat oleh</dt><dd>{{ tx.created_by.display_name|default:"—" }}</dd></div>
+        <div><dt>Disetujui oleh</dt><dd>{{ tx.approved_by.display_name|default:"—" }}{% if tx.approved_at %} · {{ tx.approved_at|date:"d/m/Y H:i" }}{% endif %}</dd></div>
+        {% if tx.approval_note %}<div><dt>Catatan persetujuan</dt><dd>{{ tx.approval_note }}</dd></div>{% endif %}
+        {% if tx.reversal_of %}<div><dt>Pembalik dari</dt><dd><a href="{% url 'finance:transaction_detail' tx.reversal_of.pk %}">#{{ tx.reversal_of.pk }} — {{ tx.reversal_of.description }}</a></dd></div>{% endif %}
+        <div><dt>Terakhir diubah</dt><dd>{{ tx.updated_at|date:"d/m/Y H:i" }}</dd></div>
+      </dl>
+    </div>
+
+    {% if tx.receipt %}
+      <div class="card mt-2">
+        <div class="card-head">
+          <h3>Bukti transaksi</h3>
+          <a class="link-arrow" href="{{ tx.receipt.url }}" target="_blank" rel="noopener">Buka berkas</a>
+        </div>
+        <div class="receipt-preview">
+          {% if is_pdf %}
+            <div class="pdf">Berkas PDF — <a href="{{ tx.receipt.url }}" target="_blank" rel="noopener">buka di tab baru</a></div>
+          {% else %}
+            <img src="{{ tx.receipt.url }}" alt="Bukti transaksi {{ tx.description }}">
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    {% if reversals %}
+      <div class="card mt-2">
+        <div class="card-head"><h3>Transaksi pembalik</h3></div>
+        <ul class="list-flat">
+          {% for reversal in reversals %}
+            <li>
+              <div class="grow">
+                <p class="title"><a href="{% url 'finance:transaction_detail' reversal.pk %}">{{ reversal.description }}</a></p>
+                <p class="meta">{{ reversal.date|indo_date }} · {{ reversal.created_by.display_name|default:"—" }}</p>
+              </div>
+              <span class="amount">{{ reversal.amount|rupiah }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    {% if audit_trail %}
+      <div class="card mt-2">
+        <div class="card-head"><h3>Jejak audit</h3><span class="tiny muted">12 terakhir</span></div>
+        <ul class="timeline">
+          {% for log in audit_trail %}
+            <li>
+              <div class="when">{{ log.created_at|date:"d/m/Y H:i" }} · {{ log.user.display_name|default:"Sistem" }}</div>
+              <div class="what">{{ log.get_action_display }}{% if log.note %} — {{ log.note }}{% endif %}</div>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+  </div>
+
+  <div>
+    {% if can_approve %}
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3>Persetujuan</h3>
+            <p class="hint">Pengeluaran ini melewati ambang batas.</p>
+          </div>
+        </div>
+        <form method="post" action="{% url 'finance:transaction_approve' tx.pk %}">
+          {% csrf_token %}
+          <div class="field mb-2">
+            <label for="approve-note">Catatan (opsional)</label>
+            <textarea class="textarea" id="approve-note" name="note" rows="2" placeholder="Misal: sesuai RAB renovasi"></textarea>
+          </div>
+          <button class="btn btn-block" type="submit">Setujui pengeluaran</button>
+        </form>
+        <form method="post" action="{% url 'finance:transaction_reject' tx.pk %}" class="mt-2" data-confirm="Tolak pengeluaran ini?">
+          {% csrf_token %}
+          <button class="btn btn-outline btn-block" type="submit">Tolak</button>
+        </form>
+      </div>
+    {% endif %}
+
+    <div class="card {% if can_approve %}mt-2{% endif %}">
+      <div class="card-head"><h3>Ringkasan dana</h3></div>
+      <div class="stat-line"><span class="label">Dana</span><span class="value">{{ tx.fund.name }}</span></div>
+      <div class="stat-line"><span class="label">Saldo dana saat ini</span><span class="value">{{ tx.fund.balance|rupiah }}</span></div>
+      <div class="stat-line"><span class="label">Status pencatatan</span><span class="value">{{ tx.get_status_display }}</span></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
