@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: sidama
+          POSTGRES_USER: sidama
+          POSTGRES_PASSWORD: sidama
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U sidama"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DJANGO_SECRET_KEY: ci-secret-key-not-for-production
+      DJANGO_DEBUG: "1"
+      DB_ENGINE: postgres
+      POSTGRES_DB: sidama
+      POSTGRES_USER: sidama
+      POSTGRES_PASSWORD: sidama
+      POSTGRES_HOST: localhost
+      CELERY_TASK_ALWAYS_EAGER: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt ruff
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Django system checks
+        run: python manage.py check
+
+      - name: Missing migrations
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Tests
+        run: python manage.py test tests -v 2
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t sidama:ci .
